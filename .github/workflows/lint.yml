@@ -1,0 +1,8 @@
+name: Lint
+
+on:
+  - pull_request
+
+jobs:
+  lint:
+    uses: avo-hq/support/.github/workflows/lint.yml@main
