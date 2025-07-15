@@ -10,10 +10,64 @@ class DBConfigTest < ActiveSupport::TestCase
     assert DBConfig::VERSION
   end
 
-  test "raises NotFoundError when getting non-existent key" do
+  test "raises NotFoundError when getting non-existent key without default" do
     assert_raises(DBConfig::NotFoundError) do
       DBConfig.get(:non_existent_key)
     end
+  end
+
+  test "returns and creates default value when key doesn't exist" do
+    # Key doesn't exist yet
+    assert_raises(DBConfig::NotFoundError) do
+      DBConfig.get(:default_test)
+    end
+
+    # Get with default should create and return the default
+    result = DBConfig.get(:default_test, default: "default_value")
+    assert_equal "default_value", result
+
+    # Key should now exist with the default value
+    assert_equal "default_value", DBConfig.get(:default_test)
+
+    # Verify it was actually saved to database
+    record = DBConfig::ConfigRecord.find_by(key: "default_test")
+    assert_not_nil record
+    assert_equal "default_value", record.value
+    assert_equal "String", record.value_type
+  end
+
+  test "returns existing value when key exists and default is provided" do
+    # Set a value first
+    DBConfig.set(:existing_key, "existing_value")
+
+    # Get with default should return existing value, not default
+    result = DBConfig.get(:existing_key, default: "default_value")
+    assert_equal "existing_value", result
+
+    # Verify the value wasn't changed
+    assert_equal "existing_value", DBConfig.get(:existing_key)
+  end
+
+  test "creates default with different data types" do
+    # Integer default
+    result = DBConfig.get(:int_default, default: 42)
+    assert_equal 42, result
+    assert_equal "Integer", DBConfig::ConfigRecord.find_by(key: "int_default").value_type
+
+    # Boolean default
+    result = DBConfig.get(:bool_default, default: true)
+    assert_equal true, result
+    assert_equal "Boolean", DBConfig::ConfigRecord.find_by(key: "bool_default").value_type
+
+    # Array default
+    result = DBConfig.get(:array_default, default: [1, 2, 3])
+    assert_equal [1, 2, 3], result
+    assert_equal "Array", DBConfig::ConfigRecord.find_by(key: "array_default").value_type
+
+    # Hash default
+    result = DBConfig.get(:hash_default, default: {"key" => "value"})
+    assert_equal({"key" => "value"}, result)
+    assert_equal "Hash", DBConfig::ConfigRecord.find_by(key: "hash_default").value_type
   end
 
   test "can set and get string values" do
@@ -106,6 +160,22 @@ class DBConfigTest < ActiveSupport::TestCase
     record = DBConfig::ConfigRecord.find_by(key: "preserve_key")
     assert_equal true, record.eager_load
     assert_equal "new_value", DBConfig.get(:preserve_key)
+  end
+
+  test "preserves eager_load flag when getting with default" do
+    # Create a key with eager_load enabled
+    DBConfig.set(:eager_default_key, "original")
+    DBConfig.eager_load(:eager_default_key, true)
+
+    # Delete the record to test default creation
+    DBConfig::ConfigRecord.find_by(key: "eager_default_key").destroy
+
+    # Get with default should create new record with default eager_load (false)
+    result = DBConfig.get(:eager_default_key, default: "default_value")
+    assert_equal "default_value", result
+
+    record = DBConfig::ConfigRecord.find_by(key: "eager_default_key")
+    assert_equal false, record.eager_load  # Should be default false
   end
 
   test "works with symbol and string keys" do

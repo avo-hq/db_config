@@ -6,6 +6,7 @@ A Rails gem that provides a database-backed configuration store for your applica
 
 - **Database-backed configuration**: Store configuration values in your database
 - **Type-safe storage**: Automatic type detection and conversion for strings, integers, floats, booleans, arrays, and hashes
+- **Default value creation**: Automatically create configurations with default values when they don't exist
 - **Eager loading support**: Mark configurations for eager loading to improve performance
 - **Simple API**: Clean and intuitive interface with `get`, `set`, and `eager_load` methods
 - **Error handling**: Proper exception handling for missing configurations
@@ -99,12 +100,37 @@ rate = DBConfig.get(:conversion_rate)         # => 0.05
 countries = DBConfig.get(:allowed_countries)  # => ["US", "CA", "UK"]
 settings = DBConfig.get(:api_settings)        # => { "endpoint" => "https://api.example.com", "timeout" => 30, "retries" => 3 }
 
-# Handle missing configurations
+# Get with default values (creates the key if it doesn't exist)
+page_size = DBConfig.get(:page_size, default: 25)           # Creates :page_size with value 25 if not found
+debug_mode = DBConfig.get(:debug_mode, default: false)      # Creates :debug_mode with value false if not found
+admin_emails = DBConfig.get(:admin_emails, default: [])     # Creates :admin_emails as empty array if not found
+
+# Handle missing configurations without defaults
 begin
   value = DBConfig.get(:missing_key)
 rescue DBConfig::NotFoundError => e
   puts "Configuration not found: #{e.message}"
 end
+```
+
+### Default Value Behavior
+
+When using the `default` parameter with `DBConfig.get`:
+
+- **If the key exists**: Returns the existing value (ignores the default)
+- **If the key doesn't exist**: Creates the key with the default value and returns it
+- **If no default provided**: Raises `DBConfig::NotFoundError` for missing keys
+
+```ruby
+# First call - key doesn't exist, creates it with default
+timeout = DBConfig.get(:api_timeout, default: 30)  # => 30 (creates the key)
+
+# Second call - key now exists, returns existing value
+timeout = DBConfig.get(:api_timeout, default: 60)  # => 30 (ignores new default)
+
+# Update the value
+DBConfig.set(:api_timeout, 45)
+timeout = DBConfig.get(:api_timeout, default: 60)  # => 45 (returns updated value)
 ```
 
 ### Eager Loading
@@ -134,7 +160,7 @@ DBConfig.get("homepage_cta")    # => "Click here!"
 
 The gem provides specific error classes:
 
-- `DBConfig::NotFoundError`: Raised when trying to access a non-existent configuration key
+- `DBConfig::NotFoundError`: Raised when trying to access a non-existent configuration key without a default value
 
 ```ruby
 begin
@@ -143,6 +169,9 @@ rescue DBConfig::NotFoundError => e
   # Handle missing configuration
   puts "Config not found: #{e.message}"
 end
+
+# Or use default values to avoid errors
+value = DBConfig.get(:missing_config, default: "fallback_value")
 ```
 
 ## Data Types

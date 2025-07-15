@@ -7,11 +7,17 @@ module DBConfig
   class NotFoundError < StandardError; end
 
   class << self
-    def get(key)
+    def get(key, default: :__no_default_provided__)
       record = DBConfig::ConfigRecord.find_by(key: key.to_s)
-      raise NotFoundError, "DBConfig not found for key: #{key}" unless record
 
-      convert_value(record.value, record.value_type)
+      if record
+        convert_value(record.value, record.value_type)
+      elsif default != :__no_default_provided__
+        # Create the key with the default value if not found and default is provided
+        set(key, default)
+      else
+        raise NotFoundError, "DBConfig not found for key: #{key}"
+      end
     end
 
     def set(key, value)
