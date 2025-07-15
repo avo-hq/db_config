@@ -3,8 +3,7 @@ module DBConfig
     self.table_name = "db_config"
 
     validates :key, presence: true, uniqueness: true
-    validates :value, presence: true
-    validates :value_type, presence: true, inclusion: {in: %w[String Integer Float Boolean Array Hash]}
+    validates :value_type, presence: true, inclusion: {in: %w[String Integer Float Boolean Array Hash NilClass]}
     validates :eager_load, inclusion: {in: [true, false]}
 
     # Add index for the key column if not already present

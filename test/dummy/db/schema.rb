@@ -13,7 +13,7 @@
 ActiveRecord::Schema[8.0].define(version: 1) do
   create_table "db_config", force: :cascade do |t|
     t.string "key", null: false
-    t.string "value", null: false
+    t.string "value"
     t.string "value_type", default: "string", null: false
     t.boolean "eager_load", default: false, null: false
     t.datetime "created_at", null: false

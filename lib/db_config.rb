@@ -6,12 +6,22 @@ require "json"
 module DBConfig
   class NotFoundError < StandardError; end
 
-  class << self
-    def get(key)
-      record = DBConfig::ConfigRecord.find_by(key: key.to_s)
-      raise NotFoundError, "DBConfig not found for key: #{key}" unless record
+  # Private sentinel object to detect when no default is provided
+  NO_DEFAULT_PROVIDED = Object.new.freeze
 
-      convert_value(record.value, record.value_type)
+  class << self
+    def get(key, default: NO_DEFAULT_PROVIDED)
+      record = DBConfig::ConfigRecord.find_by(key: key.to_s)
+
+      if record
+        convert_value(record.value, record.value_type)
+      elsif default != NO_DEFAULT_PROVIDED
+        # Create the key with the default value if not found and default is provided
+        # This allows nil to be a valid default value
+        set(key, default)
+      else
+        raise NotFoundError, "DBConfig not found for key: #{key}"
+      end
     end
 
     def set(key, value)
@@ -29,6 +39,18 @@ module DBConfig
       convert_value(record.value, record.value_type)
     end
 
+    def delete(key)
+      key_str = key.to_s
+      record = DBConfig::ConfigRecord.find_by(key: key_str)
+
+      if record
+        record.destroy!
+        true
+      else
+        false
+      end
+    end
+
     def eager_load(key, enabled)
       record = DBConfig::ConfigRecord.find_by(key: key.to_s)
       raise NotFoundError, "DBConfig not found for key: #{key}" unless record
@@ -41,6 +63,8 @@ module DBConfig
 
     def determine_type(value)
       case value
+      when NilClass
+        "NilClass"
       when String
         "String"
       when Integer
@@ -60,6 +84,8 @@ module DBConfig
 
     def serialize_value(value)
       case value
+      when NilClass
+        nil
       when Array, Hash
         JSON.generate(value)
       else
@@ -69,6 +95,8 @@ module DBConfig
 
     def convert_value(value_str, value_type)
       case value_type
+      when "NilClass"
+        nil
       when "Boolean"
         value_str == "true"
       when "Integer"
