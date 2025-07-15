@@ -105,6 +105,9 @@ page_size = DBConfig.get(:page_size, default: 25)           # Creates :page_size
 debug_mode = DBConfig.get(:debug_mode, default: false)      # Creates :debug_mode with value false if not found
 admin_emails = DBConfig.get(:admin_emails, default: [])     # Creates :admin_emails as empty array if not found
 
+# Use nil as a default value
+feature_flag = DBConfig.get(:experimental_feature, default: nil)  # Creates :experimental_feature with nil value if not found
+
 # Handle missing configurations without defaults
 begin
   value = DBConfig.get(:missing_key)
@@ -121,6 +124,8 @@ When using the `default` parameter with `DBConfig.get`:
 - **If the key doesn't exist**: Creates the key with the default value and returns it
 - **If no default provided**: Raises `DBConfig::NotFoundError` for missing keys
 
+The `default` parameter can be any value, including `nil`:
+
 ```ruby
 # First call - key doesn't exist, creates it with default
 timeout = DBConfig.get(:api_timeout, default: 30)  # => 30 (creates the key)
@@ -131,6 +136,10 @@ timeout = DBConfig.get(:api_timeout, default: 60)  # => 30 (ignores new default)
 # Update the value
 DBConfig.set(:api_timeout, 45)
 timeout = DBConfig.get(:api_timeout, default: 60)  # => 45 (returns updated value)
+
+# Using nil as a default value
+feature = DBConfig.get(:beta_feature, default: nil)  # => nil (creates the key with nil value)
+feature = DBConfig.get(:beta_feature, default: "enabled")  # => nil (returns existing nil value)
 ```
 
 ### Eager Loading
@@ -184,8 +193,23 @@ The gem automatically detects and preserves data types:
 - **Boolean**: `true` or `false` values
 - **Array**: Lists of values (stored as JSON)
 - **Hash**: Key-value pairs (stored as JSON)
+- **NilClass**: `nil` values
 
-Values are stored as strings in the database but automatically converted back to their original type when retrieved. Complex data types (Arrays and Hashes) are serialized to JSON for storage and deserialized when retrieved.
+Values are stored as strings in the database but automatically converted back to their original type when retrieved. Complex data types (Arrays and Hashes) are serialized to JSON for storage and deserialized when retrieved. `nil` values are stored as `NULL` in the database with a `NilClass` type indicator.
+
+```ruby
+# Setting different data types including nil
+DBConfig.set(:title, "Hello World")    # String
+DBConfig.set(:count, 42)               # Integer
+DBConfig.set(:rate, 3.14)              # Float
+DBConfig.set(:enabled, true)           # Boolean
+DBConfig.set(:tags, ["ruby", "rails"]) # Array
+DBConfig.set(:config, {key: "value"})  # Hash
+DBConfig.set(:feature, nil)            # NilClass
+
+# All values maintain their original type when retrieved
+DBConfig.get(:feature)  # => nil
+```
 
 ## Contributing
 

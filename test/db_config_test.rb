@@ -199,4 +199,77 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal "Array", DBConfig::ConfigRecord.find_by(key: "array_type").value_type
     assert_equal "Hash", DBConfig::ConfigRecord.find_by(key: "hash_type").value_type
   end
+
+  test "can set and get nil values" do
+    DBConfig.set(:nil_key, nil)
+    assert_nil DBConfig.get(:nil_key)
+    
+    # Verify it's stored with correct type
+    record = DBConfig::ConfigRecord.find_by(key: "nil_key")
+    assert_equal "NilClass", record.value_type
+    assert_nil record.value  # nil stored as NULL in database
+  end
+
+  test "can use nil as default value" do
+    # Key doesn't exist yet
+    assert_raises(DBConfig::NotFoundError) do
+      DBConfig.get(:nil_default_test)
+    end
+
+    # Get with nil default should create and return nil
+    result = DBConfig.get(:nil_default_test, default: nil)
+    assert_nil result
+
+    # Key should now exist with nil value
+    assert_nil DBConfig.get(:nil_default_test)
+
+    # Verify it was saved to database with correct type
+    record = DBConfig::ConfigRecord.find_by(key: "nil_default_test")
+    assert_not_nil record
+    assert_nil record.value
+    assert_equal "NilClass", record.value_type
+  end
+
+  test "returns existing nil value when key exists and default is provided" do
+    # Set nil value first
+    DBConfig.set(:existing_nil_key, nil)
+
+    # Get with non-nil default should return existing nil value, not default
+    result = DBConfig.get(:existing_nil_key, default: "default_value")
+    assert_nil result
+
+    # Verify the value wasn't changed
+    assert_nil DBConfig.get(:existing_nil_key)
+  end
+
+  test "returns existing non-nil value when key exists and nil default is provided" do
+    # Set non-nil value first
+    DBConfig.set(:existing_value_key, "existing_value")
+
+    # Get with nil default should return existing value, not nil
+    result = DBConfig.get(:existing_value_key, default: nil)
+    assert_equal "existing_value", result
+
+    # Verify the value wasn't changed
+    assert_equal "existing_value", DBConfig.get(:existing_value_key)
+  end
+
+  test "stores correct value_type for nil" do
+    DBConfig.set(:nil_type_test, nil)
+    assert_equal "NilClass", DBConfig::ConfigRecord.find_by(key: "nil_type_test").value_type
+  end
+
+  test "nil default works with eager_load" do
+    # Create key with nil default
+    result = DBConfig.get(:nil_eager_test, default: nil)
+    assert_nil result
+
+    # Set eager_load flag
+    DBConfig.eager_load(:nil_eager_test, true)
+    
+    record = DBConfig::ConfigRecord.find_by(key: "nil_eager_test")
+    assert_equal true, record.eager_load
+    assert_equal "NilClass", record.value_type
+    assert_nil DBConfig.get(:nil_eager_test)
+  end
 end

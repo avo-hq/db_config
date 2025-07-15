@@ -2,7 +2,7 @@ class CreateDbConfig < ActiveRecord::Migration<%= "[#{ActiveRecord::Migration.cu
   def change
     create_table :db_config do |t|
       t.string :key, null: false
-      t.string :value, null: false
+      t.string :value
       t.string :value_type, null: false, default: "String"
       t.boolean :eager_load, null: false, default: false
 
