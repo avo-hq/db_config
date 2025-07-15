@@ -203,7 +203,7 @@ class DBConfigTest < ActiveSupport::TestCase
   test "can set and get nil values" do
     DBConfig.set(:nil_key, nil)
     assert_nil DBConfig.get(:nil_key)
-    
+
     # Verify it's stored with correct type
     record = DBConfig::ConfigRecord.find_by(key: "nil_key")
     assert_equal "NilClass", record.value_type
@@ -266,10 +266,106 @@ class DBConfigTest < ActiveSupport::TestCase
 
     # Set eager_load flag
     DBConfig.eager_load(:nil_eager_test, true)
-    
+
     record = DBConfig::ConfigRecord.find_by(key: "nil_eager_test")
     assert_equal true, record.eager_load
     assert_equal "NilClass", record.value_type
     assert_nil DBConfig.get(:nil_eager_test)
+  end
+
+  test "can delete existing configuration" do
+    # Set up a configuration
+    DBConfig.set(:delete_test, "value to delete")
+    assert_equal "value to delete", DBConfig.get(:delete_test)
+
+    # Verify it exists in database
+    assert_not_nil DBConfig::ConfigRecord.find_by(key: "delete_test")
+
+    # Delete it
+    result = DBConfig.delete(:delete_test)
+    assert_equal true, result
+
+    # Verify it no longer exists
+    assert_nil DBConfig::ConfigRecord.find_by(key: "delete_test")
+
+    # Verify get raises error
+    assert_raises(DBConfig::NotFoundError) do
+      DBConfig.get(:delete_test)
+    end
+  end
+
+  test "delete returns false for non-existent key" do
+    # Try to delete a key that doesn't exist
+    result = DBConfig.delete(:non_existent_key)
+    assert_equal false, result
+
+    # Should still return false on subsequent calls
+    result2 = DBConfig.delete(:non_existent_key)
+    assert_equal false, result2
+  end
+
+  test "delete works with different key types" do
+    # Test with string key
+    DBConfig.set("string_key_delete", "string value")
+    assert_equal true, DBConfig.delete("string_key_delete")
+
+    # Test with symbol key
+    DBConfig.set(:symbol_key_delete, "symbol value")
+    assert_equal true, DBConfig.delete(:symbol_key_delete)
+
+    # Test with integer key
+    DBConfig.set(123, "integer key value")
+    assert_equal true, DBConfig.delete(123)
+  end
+
+  test "delete works with different value types" do
+    # Delete string value
+    DBConfig.set(:string_delete, "hello")
+    assert_equal true, DBConfig.delete(:string_delete)
+
+    # Delete integer value
+    DBConfig.set(:int_delete, 42)
+    assert_equal true, DBConfig.delete(:int_delete)
+
+    # Delete array value
+    DBConfig.set(:array_delete, [1, 2, 3])
+    assert_equal true, DBConfig.delete(:array_delete)
+
+    # Delete hash value
+    DBConfig.set(:hash_delete, {"key" => "value"})
+    assert_equal true, DBConfig.delete(:hash_delete)
+
+    # Delete nil value
+    DBConfig.set(:nil_delete, nil)
+    assert_equal true, DBConfig.delete(:nil_delete)
+
+    # Delete boolean value
+    DBConfig.set(:bool_delete, true)
+    assert_equal true, DBConfig.delete(:bool_delete)
+  end
+
+  test "delete removes record completely from database" do
+    # Create multiple configurations
+    DBConfig.set(:config1, "value1")
+    DBConfig.set(:config2, "value2")
+    DBConfig.set(:config3, "value3")
+
+    initial_count = DBConfig::ConfigRecord.count
+    assert_equal 3, initial_count
+
+    # Delete one
+    DBConfig.delete(:config2)
+
+    # Count should decrease
+    assert_equal 2, DBConfig::ConfigRecord.count
+
+    # Remaining configs should still exist
+    assert_equal "value1", DBConfig.get(:config1)
+    assert_equal "value3", DBConfig.get(:config3)
+
+    # Deleted config should not exist
+    assert_raises(DBConfig::NotFoundError) do
+      DBConfig.get(:config2)
+    end
   end
 end

@@ -116,6 +116,27 @@ rescue DBConfig::NotFoundError => e
 end
 ```
 
+### Deleting Configuration Values
+
+```ruby
+# Delete existing configuration
+result = DBConfig.delete(:site_title)  # => true (if key existed)
+result = DBConfig.delete(:missing_key) # => false (if key didn't exist)
+
+# After deletion, the key no longer exists
+DBConfig.delete(:temp_setting)
+DBConfig.get(:temp_setting)  # => raises DBConfig::NotFoundError
+
+# Delete works with any key type
+DBConfig.delete("string_key")   # String key
+DBConfig.delete(:symbol_key)    # Symbol key
+DBConfig.delete(123)            # Integer key
+
+# Delete works regardless of value type
+DBConfig.set(:config_to_delete, [1, 2, 3])
+DBConfig.delete(:config_to_delete)  # => true
+```
+
 ### Default Value Behavior
 
 When using the `default` parameter with `DBConfig.get`:
@@ -206,9 +227,78 @@ DBConfig.set(:enabled, true)           # Boolean
 DBConfig.set(:tags, ["ruby", "rails"]) # Array
 DBConfig.set(:config, {key: "value"})  # Hash
 DBConfig.set(:feature, nil)            # NilClass
+```
 
-# All values maintain their original type when retrieved
-DBConfig.get(:feature)  # => nil
+## API Reference
+
+### `DBConfig.set(key, value)`
+
+Creates or updates a configuration value.
+
+**Parameters:**
+- `key` (Symbol/String/Integer): The configuration key
+- `value` (Any): The value to store (String, Integer, Float, Boolean, Array, Hash, nil)
+
+**Returns:** The stored value converted to its original type
+
+**Example:**
+```ruby
+DBConfig.set(:timeout, 30)    # => 30
+DBConfig.set("name", "App")   # => "App"
+```
+
+### `DBConfig.get(key, default: NO_DEFAULT)`
+
+Retrieves a configuration value.
+
+**Parameters:**
+- `key` (Symbol/String/Integer): The configuration key to retrieve
+- `default` (Any, optional): Default value to use and store if key doesn't exist
+
+**Returns:** The configuration value in its original type
+
+**Raises:** `DBConfig::NotFoundError` if key doesn't exist and no default provided
+
+**Example:**
+```ruby
+DBConfig.get(:timeout)                    # => 30
+DBConfig.get(:missing_key, default: 100) # => 100 (creates the key)
+DBConfig.get(:non_existent)              # => raises NotFoundError
+```
+
+### `DBConfig.delete(key)`
+
+Deletes a configuration value.
+
+**Parameters:**
+- `key` (Symbol/String/Integer): The configuration key to delete
+
+**Returns:**
+- `true` if the key existed and was deleted
+- `false` if the key didn't exist
+
+**Example:**
+```ruby
+DBConfig.delete(:timeout)      # => true (if exists)
+DBConfig.delete(:missing_key)  # => false
+```
+
+### `DBConfig.eager_load(key, enabled)`
+
+Sets the eager loading flag for a configuration key.
+
+**Parameters:**
+- `key` (Symbol/String/Integer): The configuration key
+- `enabled` (Boolean): Whether to enable eager loading
+
+**Returns:** The configuration value
+
+**Raises:** `DBConfig::NotFoundError` if key doesn't exist
+
+**Example:**
+```ruby
+DBConfig.eager_load(:timeout, true)   # Enable eager loading
+DBConfig.eager_load(:timeout, false)  # Disable eager loading
 ```
 
 ## Contributing

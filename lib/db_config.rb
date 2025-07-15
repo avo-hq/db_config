@@ -8,11 +8,11 @@ module DBConfig
 
   # Private sentinel object to detect when no default is provided
   NO_DEFAULT_PROVIDED = Object.new.freeze
-  
+
   class << self
     def get(key, default: NO_DEFAULT_PROVIDED)
       record = DBConfig::ConfigRecord.find_by(key: key.to_s)
-      
+
       if record
         convert_value(record.value, record.value_type)
       elsif default != NO_DEFAULT_PROVIDED
@@ -37,6 +37,18 @@ module DBConfig
       )
 
       convert_value(record.value, record.value_type)
+    end
+
+    def delete(key)
+      key_str = key.to_s
+      record = DBConfig::ConfigRecord.find_by(key: key_str)
+
+      if record
+        record.destroy!
+        true
+      else
+        false
+      end
     end
 
     def eager_load(key, enabled)
