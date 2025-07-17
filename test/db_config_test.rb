@@ -536,19 +536,19 @@ class DBConfigTest < ActiveSupport::TestCase
   test "model callbacks automatically sync cache on database changes" do
     # Create a config
     DBConfig.set(:sync_test, "original")
-    
+
     # Get it to cache it
     assert_equal "original", DBConfig.get(:sync_test)
     assert DBConfig::Current.cached_records.key?("sync_test")
-    
+
     # Modify the record directly in database (simulating external change)
     record = DBConfig::ConfigRecord.find_by(key: "sync_test")
     record.update!(value: "modified_externally")
-    
+
     # Cache should automatically have new value due to callbacks
     cached_record = DBConfig::Current.cached_records["sync_test"]
     assert_equal "modified_externally", cached_record.value
-    
+
     # Get should return the updated value
     assert_equal "modified_externally", DBConfig.get(:sync_test)
   end
@@ -558,10 +558,10 @@ class DBConfigTest < ActiveSupport::TestCase
     DBConfig.set(:delete_sync_test, "value")
     DBConfig.get(:delete_sync_test) # Cache it
     assert DBConfig::Current.cached_records.key?("delete_sync_test")
-    
+
     # Delete record directly from database
     DBConfig::ConfigRecord.find_by(key: "delete_sync_test").destroy!
-    
+
     # Cache should automatically have record removed due to callbacks
     assert_not DBConfig::Current.cached_records.key?("delete_sync_test")
   end
@@ -570,19 +570,19 @@ class DBConfigTest < ActiveSupport::TestCase
     # Create and mark as eager load (will be cached via callback)
     DBConfig.set(:callback_test, "value")
     DBConfig.eager_load(:callback_test, true)
-    
+
     # Load eager configs to get it in cache
     DBConfig::Current.load_eager_configs!
     assert DBConfig::Current.cached_records.key?("callback_test")
     original_record = DBConfig::Current.cached_records["callback_test"]
-    
+
     # Update the record directly - callback should sync cache
     original_record.update!(value: "updated_via_callback")
-    
+
     # Cache should be automatically updated via callback
-    cached_record = DBConfig::Current.cached_records["callback_test"] 
+    cached_record = DBConfig::Current.cached_records["callback_test"]
     assert_equal "updated_via_callback", cached_record.value
-    
+
     # Delete the record - callback should remove from cache
     original_record.destroy!
     assert_not DBConfig::Current.cached_records.key?("callback_test")
@@ -593,17 +593,17 @@ class DBConfigTest < ActiveSupport::TestCase
     DBConfig.set(:auto_sync_test, "value1")
     cached_record = DBConfig::Current.cached_records["auto_sync_test"]
     assert_equal "value1", cached_record.value
-    
+
     # Update via set syncs
     DBConfig.set(:auto_sync_test, "value2")
     cached_record = DBConfig::Current.cached_records["auto_sync_test"]
     assert_equal "value2", cached_record.value
-    
+
     # Eager load operation syncs
     DBConfig.eager_load(:auto_sync_test, true)
     cached_record = DBConfig::Current.cached_records["auto_sync_test"]
     assert_equal true, cached_record.eager_load
-    
+
     # Delete operation syncs (removes from cache)
     DBConfig.delete(:auto_sync_test)
     assert_not DBConfig::Current.cached_records.key?("auto_sync_test")

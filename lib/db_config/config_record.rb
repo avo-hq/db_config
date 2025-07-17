@@ -22,7 +22,7 @@ module DBConfig
     def sync_cache
       # Only sync if Current attributes are available (i.e., in a request context)
       return unless defined?(DBConfig::Current)
-      
+
       if destroyed?
         # Remove from cache if destroyed
         DBConfig::Current.cached_records.delete(key)

@@ -42,7 +42,7 @@ DBConfig.get(:enabled)      # => true (Boolean)
 DBConfig.get(:page_size, default: 25)     # => 25 (creates if missing)
 DBConfig.get(:missing_key)                # => raises DBConfig::NotFoundError
 
-# Delete configurations  
+# Delete configurations
 DBConfig.delete(:old_setting)  # => true/false
 ```
 
@@ -55,7 +55,7 @@ DBConfig.eager_load(:api_key, true)  # Now super fast!
 ```
 
 > [!TIP]
-> **Good for**: API keys, site settings, frequently accessed configs  
+> **Good for**: API keys, site settings, frequently accessed configs
 > **Avoid**: Rarely used configs, large data, user-specific settings
 
 ## Supported Types
@@ -67,9 +67,9 @@ Auto-detects and preserves: String, Integer, Float, Boolean, Array, Hash, nil
 
 ## API
 
-**`DBConfig.set(key, value)`** - Store any value  
-**`DBConfig.get(key, default:)`** - Retrieve value (with optional default)  
-**`DBConfig.delete(key)`** - Remove configuration  
+**`DBConfig.set(key, value)`** - Store any value
+**`DBConfig.get(key, default:)`** - Retrieve value (with optional default)
+**`DBConfig.delete(key)`** - Remove configuration
 **`DBConfig.eager_load(key, enabled)`** - Toggle eager loading
 
 ## Contributing

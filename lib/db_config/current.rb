@@ -6,4 +6,4 @@ module DBConfig
       self.cached_records = DBConfig::ConfigRecord.where(eager_load: true).index_by(&:key)
     end
   end
-end 
+end
