@@ -7,7 +7,7 @@ A Rails gem that provides a database-backed configuration store for your applica
 - **Database-backed configuration**: Store configuration values in your database
 - **Type-safe storage**: Automatic type detection and conversion for strings, integers, floats, booleans, arrays, and hashes
 - **Default value creation**: Automatically create configurations with default values when they don't exist
-- **Eager loading support**: Mark configurations for eager loading to improve performance
+- **Eager loading**: Mark frequently accessed configurations for automatic caching and improved performance
 - **Simple API**: Clean and intuitive interface with `get`, `set`, and `eager_load` methods
 - **Error handling**: Proper exception handling for missing configurations
 - **Rails integration**: Seamless integration with Rails applications
@@ -163,18 +163,44 @@ feature = DBConfig.get(:beta_feature, default: nil)  # => nil (creates the key w
 feature = DBConfig.get(:beta_feature, default: "enabled")  # => nil (returns existing nil value)
 ```
 
-### Eager Loading
+### Eager Loading for Performance
 
-You can mark configurations for eager loading to improve performance:
+Mark frequently accessed configurations for eager loading to improve performance:
 
 ```ruby
-# Set eager loading flag
-DBConfig.eager_load(:site_title, true)  # Enable eager loading
-DBConfig.eager_load(:site_title, false) # Disable eager loading
+# Enable eager loading for configurations accessed on every request
+DBConfig.set(:api_key, "secret123")
+DBConfig.eager_load(:api_key, true)
 
-# This will raise an error if the key doesn't exist
-DBConfig.eager_load(:non_existent_key, true) # => DBConfig::NotFoundError
+DBConfig.set(:site_title, "My App")
+DBConfig.eager_load(:site_title, true)
+
+DBConfig.set(:max_upload_size, 10)
+DBConfig.eager_load(:max_upload_size, true)
+
+# Disable eager loading if no longer needed
+DBConfig.eager_load(:site_title, false)
 ```
+
+**Performance Benefits:**
+
+- **Eager loaded configs**: Loaded once per request, cached in memory - virtually no database overhead
+- **Regular configs**: Individual database query on each access - normal performance
+
+**When to Use Eager Loading:**
+
+✅ **Good candidates for eager loading:**
+- API keys, secrets, and authentication tokens
+- Site-wide settings (titles, themes, feature flags)
+- Frequently accessed business logic configurations
+- Any config accessed multiple times per request
+
+❌ **Not good for eager loading:**
+- Rarely accessed configurations
+- Large data structures that consume memory
+- User-specific or contextual settings
+
+**Note:** Eager loading works automatically - once enabled, configurations are loaded at the beginning of each request and remain available throughout the request lifecycle.
 
 ### Working with Keys
 
@@ -285,20 +311,27 @@ DBConfig.delete(:missing_key)  # => false
 
 ### `DBConfig.eager_load(key, enabled)`
 
-Sets the eager loading flag for a configuration key.
+Sets the eager loading flag for a configuration key to improve performance.
 
 **Parameters:**
-- `key` (Symbol/String/Integer): The configuration key
-- `enabled` (Boolean): Whether to enable eager loading
+- `key` (Symbol/String/Integer): The configuration key (must already exist)
+- `enabled` (Boolean): Whether to enable eager loading for this configuration
 
-**Returns:** The configuration value
+**Returns:** `true` if eager loading was enabled, `false` if disabled
 
-**Raises:** `DBConfig::NotFoundError` if key doesn't exist
+**Raises:** `DBConfig::NotFoundError` if the configuration key doesn't exist
 
 **Example:**
 ```ruby
-DBConfig.eager_load(:timeout, true)   # Enable eager loading
-DBConfig.eager_load(:timeout, false)  # Disable eager loading
+# First create the configuration
+DBConfig.set(:timeout, 30)
+
+# Then enable eager loading for performance
+DBConfig.eager_load(:timeout, true)   # => true (enables eager loading)
+DBConfig.eager_load(:timeout, false)  # => false (disables eager loading)
+
+# This will raise an error since the key doesn't exist
+DBConfig.eager_load(:non_existent, true)  # => raises DBConfig::NotFoundError
 ```
 
 ## Contributing

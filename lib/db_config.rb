@@ -1,6 +1,7 @@
 require "db_config/version"
 require "db_config/railtie"
 require "db_config/config_record"
+require "db_config/current"
 require "json"
 
 module DBConfig
@@ -11,7 +12,7 @@ module DBConfig
 
   class << self
     def get(key, default: NO_DEFAULT_PROVIDED)
-      record = DBConfig::ConfigRecord.find_by(key: key.to_s)
+      record = get_record(key)
 
       if record
         convert_value(record.value, record.value_type)
@@ -25,11 +26,12 @@ module DBConfig
     end
 
     def set(key, value)
-      key_str = key.to_s
       value_str = serialize_value(value)
       value_type = determine_type(value)
+      key = key.to_s
 
-      record = DBConfig::ConfigRecord.find_or_initialize_by(key: key_str)
+      record = Current.cached_records[key] || DBConfig::ConfigRecord.find_or_initialize_by(key:)
+
       record.update!(
         value: value_str,
         value_type: value_type,
@@ -52,14 +54,22 @@ module DBConfig
     end
 
     def eager_load(key, enabled)
-      record = DBConfig::ConfigRecord.find_by(key: key.to_s)
+      record = get_record(key)
       raise NotFoundError, "DBConfig not found for key: #{key}" unless record
 
       record.update!(eager_load: enabled)
+
       enabled
     end
 
     private
+
+    # Get record from cache or database, returns nil if not found
+    def get_record(key)
+      key = key.to_s
+
+      Current.cached_records[key] || DBConfig::ConfigRecord.find_by(key:)
+    end
 
     def determine_type(value)
       case value

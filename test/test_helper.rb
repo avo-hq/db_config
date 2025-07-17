@@ -12,3 +12,10 @@ if ActiveSupport::TestCase.respond_to?(:fixture_paths=)
   ActiveSupport::TestCase.file_fixture_path = File.expand_path("fixtures", __dir__) + "/files"
   ActiveSupport::TestCase.fixtures :all
 end
+
+# Ensure Current attributes are cleared between tests
+class ActiveSupport::TestCase
+  setup do
+    DBConfig::Current.reset if defined?(DBConfig::Current)
+  end
+end
