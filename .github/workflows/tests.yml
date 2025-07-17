@@ -44,14 +44,12 @@ jobs:
         run: |
           bundle config path vendor/bundle
           bundle install --jobs 4 --retry 3
-          bundle exec rails db:create
-          bundle exec rails db:migrate
 
       - name: Run tests
         env:
           RAILS_ENV: test
           # REDIS_URL: redis://localhost:6379/0
-        run: bundle exec rails test
+        run: bin/test
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v4

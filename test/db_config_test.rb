@@ -368,4 +368,244 @@ class DBConfigTest < ActiveSupport::TestCase
       DBConfig.get(:config2)
     end
   end
+
+  # Eager Loading Tests
+  test "eager loading loads all marked configs" do
+    # Create some configs with eager_load enabled
+    DBConfig.set(:eager_config1, "value1")
+    DBConfig.set(:eager_config2, 42)
+    DBConfig.set(:normal_config, "normal")
+
+    # Mark some as eager load
+    DBConfig.eager_load(:eager_config1, true)
+    DBConfig.eager_load(:eager_config2, true)
+
+    # Clear current attributes to simulate new request
+    DBConfig::Current.reset
+
+    # Load eager configs
+    DBConfig::Current.load_eager_configs!
+
+    # Check that eager configs are loaded
+    cached_records = DBConfig::Current.cached_records
+
+    assert_equal 2, cached_records.size
+    assert cached_records.key?("eager_config1")
+    assert cached_records.key?("eager_config2")
+    assert_not cached_records.key?("normal_config")
+
+    # Check values are correct
+    assert_equal "value1", DBConfig.get(:eager_config1)
+    assert_equal 42, DBConfig.get(:eager_config2)
+  end
+
+  test "get method checks eager loaded configs first" do
+    # Create and set config as eager load
+    DBConfig.set(:test_config, "original_value")
+    DBConfig.eager_load(:test_config, true)
+
+    # Load eager configs
+    DBConfig::Current.load_eager_configs!
+
+    # Verify it's in the cache
+    assert DBConfig::Current.cached_records.key?("test_config")
+
+    # Get should return from cache
+    assert_equal "original_value", DBConfig.get(:test_config)
+  end
+
+  test "get method falls back to database query for non-eager configs" do
+    # Create a non-eager config
+    DBConfig.set(:non_eager_config, "database_value")
+
+    # Clear cache
+    DBConfig::Current.reset
+
+    # Get should query database directly (not cache the result)
+    assert_equal "database_value", DBConfig.get(:non_eager_config)
+
+    # Should NOT be cached (since it's not eager loaded)
+    assert_not DBConfig::Current.cached_records.key?("non_eager_config")
+  end
+
+  test "set method updates eager loaded cache" do
+    # Create and set config as eager load
+    DBConfig.set(:cache_test, "original")
+    DBConfig.eager_load(:cache_test, true)
+
+    # Load eager configs
+    DBConfig::Current.load_eager_configs!
+
+    # Update the value
+    DBConfig.set(:cache_test, "updated")
+
+    # Cache should be updated
+    assert_equal "updated", DBConfig.get(:cache_test)
+  end
+
+  test "delete method removes from cache" do
+    # Create and set config as eager load
+    DBConfig.set(:delete_test, "value")
+    DBConfig.eager_load(:delete_test, true)
+
+    # Load eager configs
+    DBConfig::Current.load_eager_configs!
+
+    # Verify it's cached
+    assert DBConfig::Current.cached_records.key?("delete_test")
+
+    # Delete the config
+    assert DBConfig.delete(:delete_test)
+
+    # Should be removed from cache
+    assert_not DBConfig::Current.cached_records.key?("delete_test")
+  end
+
+  test "eager_load method updates cache appropriately" do
+    # Create a config
+    DBConfig.set(:toggle_test, "value")
+
+    # Initially not eager loaded
+    DBConfig::Current.load_eager_configs!
+    assert_not DBConfig::Current.cached_records.key?("toggle_test")
+
+    # Enable eager loading
+    DBConfig.eager_load(:toggle_test, true)
+
+    # Should now be in cache
+    assert DBConfig::Current.cached_records.key?("toggle_test")
+    assert_equal "value", DBConfig.get(:toggle_test)
+
+    # Disable eager loading
+    DBConfig.eager_load(:toggle_test, false)
+
+    # Should still be in cache (since we accessed it)
+    assert DBConfig::Current.cached_records.key?("toggle_test")
+  end
+
+  test "current attributes are thread safe" do
+    # This test simulates multiple threads/requests
+    DBConfig.set(:thread_test, "value1")
+    DBConfig.eager_load(:thread_test, true)
+
+    # Simulate first request
+    DBConfig::Current.load_eager_configs!
+    first_value = DBConfig.get(:thread_test)
+    assert_equal "value1", first_value
+
+    # Simulate clearing for new request (Current attributes reset)
+    DBConfig::Current.reset
+
+    # Modify config in database
+    DBConfig.set(:thread_test, "value2")
+
+    # Simulate second request
+    DBConfig::Current.load_eager_configs!
+    second_value = DBConfig.get(:thread_test)
+
+    # Second request should have updated value
+    assert_equal "value2", second_value
+  end
+
+  test "supports all value types in eager loading" do
+    DBConfig.set(:string_config, "string_value")
+    DBConfig.set(:integer_config, 123)
+    DBConfig.set(:float_config, 45.67)
+    DBConfig.set(:boolean_config, true)
+    DBConfig.set(:array_config, [1, 2, 3])
+    DBConfig.set(:hash_config, {key: "value"})
+    DBConfig.set(:nil_config, nil)
+
+    # Mark all as eager load
+    %w[string_config integer_config float_config boolean_config array_config hash_config nil_config].each do |key|
+      DBConfig.eager_load(key, true)
+    end
+
+    # Load and verify
+    DBConfig::Current.load_eager_configs!
+
+    assert_equal "string_value", DBConfig.get(:string_config)
+    assert_equal 123, DBConfig.get(:integer_config)
+    assert_equal 45.67, DBConfig.get(:float_config)
+    assert_equal true, DBConfig.get(:boolean_config)
+    assert_equal [1, 2, 3], DBConfig.get(:array_config)
+    assert_equal({"key" => "value"}, DBConfig.get(:hash_config))
+    assert_nil DBConfig.get(:nil_config)
+  end
+
+  test "model callbacks automatically sync cache on database changes" do
+    # Create a config
+    DBConfig.set(:sync_test, "original")
+
+    # Get it to cache it
+    assert_equal "original", DBConfig.get(:sync_test)
+    assert DBConfig::Current.cached_records.key?("sync_test")
+
+    # Modify the record directly in database (simulating external change)
+    record = DBConfig::ConfigRecord.find_by(key: "sync_test")
+    record.update!(value: "modified_externally")
+
+    # Cache should automatically have new value due to callbacks
+    cached_record = DBConfig::Current.cached_records["sync_test"]
+    assert_equal "modified_externally", cached_record.value
+
+    # Get should return the updated value
+    assert_equal "modified_externally", DBConfig.get(:sync_test)
+  end
+
+  test "model callbacks automatically remove deleted records from cache" do
+    # Create and cache a config
+    DBConfig.set(:delete_sync_test, "value")
+    DBConfig.get(:delete_sync_test) # Cache it
+    assert DBConfig::Current.cached_records.key?("delete_sync_test")
+
+    # Delete record directly from database
+    DBConfig::ConfigRecord.find_by(key: "delete_sync_test").destroy!
+
+    # Cache should automatically have record removed due to callbacks
+    assert_not DBConfig::Current.cached_records.key?("delete_sync_test")
+  end
+
+  test "model callbacks handle cache sync automatically" do
+    # Create and mark as eager load (will be cached via callback)
+    DBConfig.set(:callback_test, "value")
+    DBConfig.eager_load(:callback_test, true)
+
+    # Load eager configs to get it in cache
+    DBConfig::Current.load_eager_configs!
+    assert DBConfig::Current.cached_records.key?("callback_test")
+    original_record = DBConfig::Current.cached_records["callback_test"]
+
+    # Update the record directly - callback should sync cache
+    original_record.update!(value: "updated_via_callback")
+
+    # Cache should be automatically updated via callback
+    cached_record = DBConfig::Current.cached_records["callback_test"]
+    assert_equal "updated_via_callback", cached_record.value
+
+    # Delete the record - callback should remove from cache
+    original_record.destroy!
+    assert_not DBConfig::Current.cached_records.key?("callback_test")
+  end
+
+  test "all operations automatically sync cache" do
+    # Set operation syncs
+    DBConfig.set(:auto_sync_test, "value1")
+    cached_record = DBConfig::Current.cached_records["auto_sync_test"]
+    assert_equal "value1", cached_record.value
+
+    # Update via set syncs
+    DBConfig.set(:auto_sync_test, "value2")
+    cached_record = DBConfig::Current.cached_records["auto_sync_test"]
+    assert_equal "value2", cached_record.value
+
+    # Eager load operation syncs
+    DBConfig.eager_load(:auto_sync_test, true)
+    cached_record = DBConfig::Current.cached_records["auto_sync_test"]
+    assert_equal true, cached_record.eager_load
+
+    # Delete operation syncs (removes from cache)
+    DBConfig.delete(:auto_sync_test)
+    assert_not DBConfig::Current.cached_records.key?("auto_sync_test")
+  end
 end
