@@ -60,6 +60,10 @@ module DBConfig
       enabled
     end
 
+    # Aliases for convenience
+    alias_method :read, :get
+    alias_method :write, :set
+
     private
 
     # Get record from cache or database, returns nil if not found
