@@ -656,11 +656,11 @@ class DBConfigTest < ActiveSupport::TestCase
 
   test "fetch returns existing value when key exists" do
     DBConfig.set(:fetch_existing, "existing_value")
-    
+
     # Should return existing value without executing block
     result = DBConfig.fetch(:fetch_existing) { "block_value" }
     assert_equal "existing_value", result
-    
+
     # Value should remain unchanged
     assert_equal "existing_value", DBConfig.get(:fetch_existing)
   end
@@ -668,11 +668,11 @@ class DBConfigTest < ActiveSupport::TestCase
   test "fetch executes block and stores result when key doesn't exist" do
     # Key doesn't exist initially
     assert_not DBConfig.exist?(:fetch_new)
-    
+
     # Should execute block and store the result
     result = DBConfig.fetch(:fetch_new) { 42 }
     assert_equal 42, result
-    
+
     # Should now exist in database
     assert DBConfig.exist?(:fetch_new)
     assert_equal 42, DBConfig.get(:fetch_new)
@@ -688,27 +688,27 @@ class DBConfigTest < ActiveSupport::TestCase
     result1 = DBConfig.fetch(:fetch_string) { "default_string" }
     assert_equal "default_string", result1
     assert_equal "default_string", DBConfig.get(:fetch_string)
-    
+
     # Integer
     result2 = DBConfig.fetch(:fetch_integer) { 123 }
     assert_equal 123, result2
     assert_equal 123, DBConfig.get(:fetch_integer)
-    
+
     # Boolean
     result3 = DBConfig.fetch(:fetch_boolean) { true }
     assert_equal true, result3
     assert_equal true, DBConfig.get(:fetch_boolean)
-    
+
     # Array
     result4 = DBConfig.fetch(:fetch_array) { [1, 2, 3] }
     assert_equal [1, 2, 3], result4
     assert_equal [1, 2, 3], DBConfig.get(:fetch_array)
-    
+
     # Hash
     result5 = DBConfig.fetch(:fetch_hash) { {key: "value"} }
     assert_equal({"key" => "value"}, result5)  # Symbol keys become string keys
     assert_equal({"key" => "value"}, DBConfig.get(:fetch_hash))
-    
+
     # Nil
     result6 = DBConfig.fetch(:fetch_nil) { nil }
     assert_nil result6
@@ -717,7 +717,7 @@ class DBConfigTest < ActiveSupport::TestCase
 
   test "fetch block is only executed once" do
     counter = 0
-    
+
     # First call should execute block
     result1 = DBConfig.fetch(:fetch_counter) do
       counter += 1
@@ -725,7 +725,7 @@ class DBConfigTest < ActiveSupport::TestCase
     end
     assert_equal "value_1", result1
     assert_equal 1, counter
-    
+
     # Second call should return stored value without executing block
     result2 = DBConfig.fetch(:fetch_counter) do
       counter += 1
@@ -739,7 +739,7 @@ class DBConfigTest < ActiveSupport::TestCase
     # Use symbol key
     result1 = DBConfig.fetch(:fetch_symbol_test) { "symbol_value" }
     assert_equal "symbol_value", result1
-    
+
     # Should work with string key too (same underlying key)
     result2 = DBConfig.fetch("fetch_symbol_test") { "string_value" }
     assert_equal "symbol_value", result2  # Should return existing value

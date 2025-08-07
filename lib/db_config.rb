@@ -66,7 +66,7 @@ module DBConfig
 
     def fetch(key, &block)
       record = get_record(key)
-      
+
       if record
         convert_value(record.value, record.value_type)
       elsif block_given?
