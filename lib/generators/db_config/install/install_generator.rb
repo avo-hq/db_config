@@ -37,11 +37,12 @@ module DbConfig
         say "  DBConfig.get(:allowed_countries)", :cyan
         say "  # => ['US', 'CA', 'UK']"
         say ""
-        say "  # Get with default values (creates key if not found)"
-        say "  DBConfig.get(:page_size, default: 25)", :cyan
-        say "  DBConfig.get(:debug_mode, default: false)", :cyan
-        say "  DBConfig.get(:admin_emails, default: [])", :cyan
+        say "  # Use || operator for fallback values"
+        say "  page_size = DBConfig.get(:page_size) || 25", :cyan
+        say "  debug_mode = DBConfig.get(:debug_mode) || false", :cyan
+        say "  admin_emails = DBConfig.get(:admin_emails) || []", :cyan
         say ""
+
         say "  # Enable/disable eager loading for a config"
         say "  DBConfig.eager_load(:homepage_cta, true)", :cyan
         say ""
@@ -53,7 +54,6 @@ module DbConfig
         say "  end", :cyan
         say ""
         say "Supported data types: String, Integer, Float, Boolean, Array, Hash", :green
-        say "Default values: Automatically create missing keys with provided defaults", :green
         say ""
         say "=" * 70
       end
