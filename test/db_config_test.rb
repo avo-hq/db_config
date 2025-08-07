@@ -28,7 +28,7 @@ class DBConfigTest < ActiveSupport::TestCase
   test "get! doesn't accept default parameter" do
     # get! should not have a default parameter
     assert_raises(ArgumentError) do
-      DBConfig.get!(:some_key, default: "some_default")
+      DBConfig.get!(:some_key, "some_default")
     end
   end
 
@@ -48,55 +48,21 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_nil DBConfig.get!(:nil_key)
   end
 
-  test "returns default value when key doesn't exist but doesn't store it" do
-    # Key doesn't exist yet
-    assert_nil DBConfig.get(:default_test)
 
-    # Get with default should return the default but not store it
-    result = DBConfig.get(:default_test, default: "default_value")
-    assert_equal "default_value", result
 
-    # Key should still not exist in database
-    assert_nil DBConfig.get(:default_test)
-
-    # Verify it was NOT saved to database
-    record = DBConfig::ConfigRecord.find_by(key: "default_test")
-    assert_nil record
-  end
-
-  test "returns existing value when key exists and default is provided" do
+  test "returns existing value when key exists" do
     # Set a value first
     DBConfig.set(:existing_key, "existing_value")
 
-    # Get with default should return existing value, not default
-    result = DBConfig.get(:existing_key, default: "default_value")
+    # Get should return existing value
+    result = DBConfig.get(:existing_key)
     assert_equal "existing_value", result
 
     # Verify the value wasn't changed
     assert_equal "existing_value", DBConfig.get(:existing_key)
   end
 
-  test "returns defaults with different data types but doesn't store them" do
-    # Integer default
-    result = DBConfig.get(:int_default, default: 42)
-    assert_equal 42, result
-    assert_nil DBConfig::ConfigRecord.find_by(key: "int_default")
 
-    # Boolean default
-    result = DBConfig.get(:bool_default, default: true)
-    assert_equal true, result
-    assert_nil DBConfig::ConfigRecord.find_by(key: "bool_default")
-
-    # Array default
-    result = DBConfig.get(:array_default, default: [1, 2, 3])
-    assert_equal [1, 2, 3], result
-    assert_nil DBConfig::ConfigRecord.find_by(key: "array_default")
-
-    # Hash default
-    result = DBConfig.get(:hash_default, default: {"key" => "value"})
-    assert_equal({"key" => "value"}, result)
-    assert_nil DBConfig::ConfigRecord.find_by(key: "hash_default")
-  end
 
   test "can set and get string values" do
     DBConfig.set(:test_key, "test_value")
@@ -190,22 +156,7 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal "new_value", DBConfig.get(:preserve_key)
   end
 
-  test "get with default doesn't create record even when previous record existed" do
-    # Create a key with eager_load enabled
-    DBConfig.set(:eager_default_key, "original")
-    DBConfig.eager_load(:eager_default_key, true)
 
-    # Delete the record to test default behavior
-    DBConfig::ConfigRecord.find_by(key: "eager_default_key").destroy
-
-    # Get with default should return default but not create record
-    result = DBConfig.get(:eager_default_key, default: "default_value")
-    assert_equal "default_value", result
-
-    # No record should be created
-    record = DBConfig::ConfigRecord.find_by(key: "eager_default_key")
-    assert_nil record
-  end
 
   test "works with symbol and string keys" do
     DBConfig.set(:symbol_key, "value")
@@ -239,40 +190,26 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_nil record.value  # nil stored as NULL in database
   end
 
-  test "can use nil as default value without storing" do
-    # Key doesn't exist yet
-    assert_nil DBConfig.get(:nil_default_test)
 
-    # Get with nil default should return nil but not store it
-    result = DBConfig.get(:nil_default_test, default: nil)
-    assert_nil result
 
-    # Key should still not exist
-    assert_nil DBConfig.get(:nil_default_test)
-
-    # Verify it was NOT saved to database
-    record = DBConfig::ConfigRecord.find_by(key: "nil_default_test")
-    assert_nil record
-  end
-
-  test "returns existing nil value when key exists and default is provided" do
+  test "returns existing nil value when key exists" do
     # Set nil value first
     DBConfig.set(:existing_nil_key, nil)
 
-    # Get with non-nil default should return existing nil value, not default
-    result = DBConfig.get(:existing_nil_key, default: "default_value")
+    # Get should return existing nil value
+    result = DBConfig.get(:existing_nil_key)
     assert_nil result
 
     # Verify the value wasn't changed
     assert_nil DBConfig.get(:existing_nil_key)
   end
 
-  test "returns existing non-nil value when key exists and nil default is provided" do
+  test "returns existing non-nil value when key exists" do
     # Set non-nil value first
     DBConfig.set(:existing_value_key, "existing_value")
 
-    # Get with nil default should return existing value, not nil
-    result = DBConfig.get(:existing_value_key, default: nil)
+    # Get should return existing value
+    result = DBConfig.get(:existing_value_key)
     assert_equal "existing_value", result
 
     # Verify the value wasn't changed
@@ -284,9 +221,9 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal "NilClass", DBConfig::ConfigRecord.find_by(key: "nil_type_test").value_type
   end
 
-  test "nil default doesn't create record for eager_load testing" do
-    # Get with nil default doesn't create record
-    result = DBConfig.get(:nil_eager_test, default: nil)
+  test "get on non-existent key doesn't create record for eager_load testing" do
+    # Get on non-existent key returns nil and doesn't create record
+    result = DBConfig.get(:nil_eager_test)
     assert_nil result
 
     # Can't set eager_load flag on non-existent record

@@ -5,7 +5,7 @@ Database-backed configuration store for Rails with automatic type conversion, de
 ## Features
 
 - **Type-safe storage**: Auto-detects and converts strings, integers, floats, booleans, arrays, hashes, and nil
-- **Safe defaults**: Returns default values without storing them in the database
+
 - **⚡ Eager loading**: Cache frequently accessed configs for near-zero database overhead
 - **Simple API**: `get`, `get!`, `set`, `delete`, `eager_load` methods
 
@@ -38,11 +38,13 @@ DBConfig.set(:feature, nil)
 DBConfig.get(:max_users)    # => 1000 (Integer)
 DBConfig.get(:enabled)      # => true (Boolean)
 
-# Get with defaults (returns default without storing)
-DBConfig.get(:page_size, default: 25)     # => 25 (returns default, doesn't store)
 
-# Get missing config without default (safe - returns nil)
+
+# Get missing config (safe - returns nil)
 DBConfig.get(:missing_key)                # => nil
+
+# Use || operator for fallback values
+DBConfig.get(:page_size) || 25            # => 25 if :page_size :admin_emails not set
 
 # Get missing config with get! (raises error)
 DBConfig.get!(:missing_key)               # => raises DBConfig::NotFoundError
@@ -53,7 +55,9 @@ DBConfig.get!(:missing_key)               # => raises DBConfig::NotFoundError
 ```ruby
 # Safe get - never raises exceptions, returns nil if not found
 value = DBConfig.get(:api_token)          # => nil if not found
-value = DBConfig.get(:api_token, default: "default_token")  # => "default_token" if not found
+
+# Use || operator for fallback values
+api_token = DBConfig.get(:api_token) || "default_token"
 
 # Strict get - raises exception if not found
 begin
@@ -107,16 +111,24 @@ DBConfig.set(:null, nil)                 # => nil (NilClass)
 
 ## API Reference
 
-### `DBConfig.get(key, default: nil)`
+### `DBConfig.get(key)`
 Safely retrieves configuration value for the given key.
 
 **Parameters:**
 - `key` (Symbol/String) - Configuration key to retrieve
-- `default` (optional) - Value to return if key doesn't exist (not stored in database)
 
-**Returns:** Stored value with original type preserved, or default value, or `nil` if not found
+**Returns:** Stored value with original type preserved, or `nil` if not found
 
 **Raises:** Never raises exceptions
+
+**Fallback Pattern:**
+Use the `||` operator to provide fallback values when keys don't exist:
+
+```ruby
+# Recommended pattern for fallback values
+page_size = DBConfig.get(:page_size) || 25
+```
+
 
 ### `DBConfig.get!(key)`
 Strictly retrieves configuration value for the given key.

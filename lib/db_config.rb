@@ -7,22 +7,10 @@ require "json"
 module DBConfig
   class NotFoundError < StandardError; end
 
-  # Private sentinel object to detect when no default is provided
-  NO_DEFAULT_PROVIDED = Object.new.freeze
-
   class << self
-    def get(key, default: NO_DEFAULT_PROVIDED)
+    def get(key)
       record = get_record(key)
-
-      if record
-        convert_value(record.value, record.value_type)
-      elsif default != NO_DEFAULT_PROVIDED
-        # Return the default value without storing it in the database
-        # This allows nil to be a valid default value
-        default
-      end
-
-      # If not found and no default provided, return nil
+      record ? convert_value(record.value, record.value_type) : nil
     end
 
     def get!(key)
