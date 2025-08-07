@@ -10,30 +10,58 @@ class DBConfigTest < ActiveSupport::TestCase
     assert DBConfig::VERSION
   end
 
-  test "raises NotFoundError when getting non-existent key without default" do
+  test "returns nil when getting non-existent key without default" do
+    assert_nil DBConfig.get(:non_existent_key)
+  end
+
+  test "get! raises NotFoundError when getting non-existent key" do
     assert_raises(DBConfig::NotFoundError) do
-      DBConfig.get(:non_existent_key)
+      DBConfig.get!(:non_existent_key)
     end
   end
 
-  test "returns and creates default value when key doesn't exist" do
-    # Key doesn't exist yet
-    assert_raises(DBConfig::NotFoundError) do
-      DBConfig.get(:default_test)
-    end
+  test "get! returns value when key exists" do
+    DBConfig.set(:existing_key, "test_value")
+    assert_equal "test_value", DBConfig.get!(:existing_key)
+  end
 
-    # Get with default should create and return the default
+  test "get! doesn't accept default parameter" do
+    # get! should not have a default parameter
+    assert_raises(ArgumentError) do
+      DBConfig.get!(:some_key, default: "some_default")
+    end
+  end
+
+  test "get! works with all data types" do
+    DBConfig.set(:string_key, "hello")
+    DBConfig.set(:int_key, 42)
+    DBConfig.set(:bool_key, true)
+    DBConfig.set(:array_key, [1, 2, 3])
+    DBConfig.set(:hash_key, {"key" => "value"})
+    DBConfig.set(:nil_key, nil)
+
+    assert_equal "hello", DBConfig.get!(:string_key)
+    assert_equal 42, DBConfig.get!(:int_key)
+    assert_equal true, DBConfig.get!(:bool_key)
+    assert_equal [1, 2, 3], DBConfig.get!(:array_key)
+    assert_equal({"key" => "value"}, DBConfig.get!(:hash_key))
+    assert_nil DBConfig.get!(:nil_key)
+  end
+
+  test "returns default value when key doesn't exist but doesn't store it" do
+    # Key doesn't exist yet
+    assert_nil DBConfig.get(:default_test)
+
+    # Get with default should return the default but not store it
     result = DBConfig.get(:default_test, default: "default_value")
     assert_equal "default_value", result
 
-    # Key should now exist with the default value
-    assert_equal "default_value", DBConfig.get(:default_test)
+    # Key should still not exist in database
+    assert_nil DBConfig.get(:default_test)
 
-    # Verify it was actually saved to database
+    # Verify it was NOT saved to database
     record = DBConfig::ConfigRecord.find_by(key: "default_test")
-    assert_not_nil record
-    assert_equal "default_value", record.value
-    assert_equal "String", record.value_type
+    assert_nil record
   end
 
   test "returns existing value when key exists and default is provided" do
@@ -48,26 +76,26 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal "existing_value", DBConfig.get(:existing_key)
   end
 
-  test "creates default with different data types" do
+  test "returns defaults with different data types but doesn't store them" do
     # Integer default
     result = DBConfig.get(:int_default, default: 42)
     assert_equal 42, result
-    assert_equal "Integer", DBConfig::ConfigRecord.find_by(key: "int_default").value_type
+    assert_nil DBConfig::ConfigRecord.find_by(key: "int_default")
 
     # Boolean default
     result = DBConfig.get(:bool_default, default: true)
     assert_equal true, result
-    assert_equal "Boolean", DBConfig::ConfigRecord.find_by(key: "bool_default").value_type
+    assert_nil DBConfig::ConfigRecord.find_by(key: "bool_default")
 
     # Array default
     result = DBConfig.get(:array_default, default: [1, 2, 3])
     assert_equal [1, 2, 3], result
-    assert_equal "Array", DBConfig::ConfigRecord.find_by(key: "array_default").value_type
+    assert_nil DBConfig::ConfigRecord.find_by(key: "array_default")
 
     # Hash default
     result = DBConfig.get(:hash_default, default: {"key" => "value"})
     assert_equal({"key" => "value"}, result)
-    assert_equal "Hash", DBConfig::ConfigRecord.find_by(key: "hash_default").value_type
+    assert_nil DBConfig::ConfigRecord.find_by(key: "hash_default")
   end
 
   test "can set and get string values" do
@@ -162,20 +190,21 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal "new_value", DBConfig.get(:preserve_key)
   end
 
-  test "preserves eager_load flag when getting with default" do
+  test "get with default doesn't create record even when previous record existed" do
     # Create a key with eager_load enabled
     DBConfig.set(:eager_default_key, "original")
     DBConfig.eager_load(:eager_default_key, true)
 
-    # Delete the record to test default creation
+    # Delete the record to test default behavior
     DBConfig::ConfigRecord.find_by(key: "eager_default_key").destroy
 
-    # Get with default should create new record with default eager_load (false)
+    # Get with default should return default but not create record
     result = DBConfig.get(:eager_default_key, default: "default_value")
     assert_equal "default_value", result
 
+    # No record should be created
     record = DBConfig::ConfigRecord.find_by(key: "eager_default_key")
-    assert_equal false, record.eager_load  # Should be default false
+    assert_nil record
   end
 
   test "works with symbol and string keys" do
@@ -210,24 +239,20 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_nil record.value  # nil stored as NULL in database
   end
 
-  test "can use nil as default value" do
+  test "can use nil as default value without storing" do
     # Key doesn't exist yet
-    assert_raises(DBConfig::NotFoundError) do
-      DBConfig.get(:nil_default_test)
-    end
+    assert_nil DBConfig.get(:nil_default_test)
 
-    # Get with nil default should create and return nil
+    # Get with nil default should return nil but not store it
     result = DBConfig.get(:nil_default_test, default: nil)
     assert_nil result
 
-    # Key should now exist with nil value
+    # Key should still not exist
     assert_nil DBConfig.get(:nil_default_test)
 
-    # Verify it was saved to database with correct type
+    # Verify it was NOT saved to database
     record = DBConfig::ConfigRecord.find_by(key: "nil_default_test")
-    assert_not_nil record
-    assert_nil record.value
-    assert_equal "NilClass", record.value_type
+    assert_nil record
   end
 
   test "returns existing nil value when key exists and default is provided" do
@@ -259,18 +284,19 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal "NilClass", DBConfig::ConfigRecord.find_by(key: "nil_type_test").value_type
   end
 
-  test "nil default works with eager_load" do
-    # Create key with nil default
+  test "nil default doesn't create record for eager_load testing" do
+    # Get with nil default doesn't create record
     result = DBConfig.get(:nil_eager_test, default: nil)
     assert_nil result
 
-    # Set eager_load flag
-    DBConfig.eager_load(:nil_eager_test, true)
+    # Can't set eager_load flag on non-existent record
+    assert_raises(DBConfig::NotFoundError) do
+      DBConfig.eager_load(:nil_eager_test, true)
+    end
 
+    # Still no record should exist
     record = DBConfig::ConfigRecord.find_by(key: "nil_eager_test")
-    assert_equal true, record.eager_load
-    assert_equal "NilClass", record.value_type
-    assert_nil DBConfig.get(:nil_eager_test)
+    assert_nil record
   end
 
   test "can delete existing configuration" do
@@ -288,10 +314,8 @@ class DBConfigTest < ActiveSupport::TestCase
     # Verify it no longer exists
     assert_nil DBConfig::ConfigRecord.find_by(key: "delete_test")
 
-    # Verify get raises error
-    assert_raises(DBConfig::NotFoundError) do
-      DBConfig.get(:delete_test)
-    end
+    # Verify get returns nil
+    assert_nil DBConfig.get(:delete_test)
   end
 
   test "delete returns false for non-existent key" do
@@ -363,10 +387,8 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal "value1", DBConfig.get(:config1)
     assert_equal "value3", DBConfig.get(:config3)
 
-    # Deleted config should not exist
-    assert_raises(DBConfig::NotFoundError) do
-      DBConfig.get(:config2)
-    end
+    # Deleted config should return nil
+    assert_nil DBConfig.get(:config2)
   end
 
   # Eager Loading Tests

@@ -17,9 +17,19 @@ module DBConfig
       if record
         convert_value(record.value, record.value_type)
       elsif default != NO_DEFAULT_PROVIDED
-        # Create the key with the default value if not found and default is provided
+        # Return the default value without storing it in the database
         # This allows nil to be a valid default value
-        set(key, default)
+        default
+      end
+
+      # If not found and no default provided, return nil
+    end
+
+    def get!(key)
+      record = get_record(key)
+
+      if record
+        convert_value(record.value, record.value_type)
       else
         raise NotFoundError, "DBConfig not found for key: #{key}"
       end
