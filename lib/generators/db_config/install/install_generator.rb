@@ -41,9 +41,12 @@ module DbConfig
         say "  DBConfig.exist?(:page_size)", :cyan
         say "  # => true or false"
         say ""
+        say "  # Fetch with block - stores block result if key doesn't exist"
+        say "  page_size = DBConfig.fetch(:page_size) { 25 }", :cyan
+        say "  debug_mode = DBConfig.fetch(:debug_mode) { false }", :cyan
+        say ""
         say "  # Use || operator for fallback values"
         say "  page_size = DBConfig.get(:page_size) || 25", :cyan
-        say "  debug_mode = DBConfig.get(:debug_mode) || false", :cyan
         say "  admin_emails = DBConfig.get(:admin_emails) || []", :cyan
         say ""
 
