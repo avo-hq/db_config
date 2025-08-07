@@ -20,10 +20,9 @@ module DBConfig
         # Return the default value without storing it in the database
         # This allows nil to be a valid default value
         default
-      else
-        # Return nil instead of raising an error
-        nil
       end
+
+      # If not found and no default provided, return nil
     end
 
     def get!(key)
