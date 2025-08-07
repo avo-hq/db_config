@@ -5,9 +5,9 @@ Database-backed configuration store for Rails with automatic type conversion, de
 ## Features
 
 - **Type-safe storage**: Auto-detects and converts strings, integers, floats, booleans, arrays, hashes, and nil
-- **Default values**: Creates missing configs automatically when accessed with defaults
+- **Safe defaults**: Returns default values without storing them in the database
 - **⚡ Eager loading**: Cache frequently accessed configs for near-zero database overhead
-- **Simple API**: `get`, `set`, `delete`, `eager_load` methods
+- **Simple API**: `get`, `get!`, `set`, `delete`, `eager_load` methods
 
 ## Installation & Setup
 
@@ -38,25 +38,30 @@ DBConfig.set(:feature, nil)
 DBConfig.get(:max_users)    # => 1000 (Integer)
 DBConfig.get(:enabled)      # => true (Boolean)
 
-# Get with defaults (creates if missing)
-DBConfig.get(:page_size, default: 25)     # => 25 (creates if missing)
+# Get with defaults (returns default without storing)
+DBConfig.get(:page_size, default: 25)     # => 25 (returns default, doesn't store)
 
-# Get missing config without default
-DBConfig.get(:missing_key)                # => raises DBConfig::NotFoundError
+# Get missing config without default (safe - returns nil)
+DBConfig.get(:missing_key)                # => nil
+
+# Get missing config with get! (raises error)
+DBConfig.get!(:missing_key)               # => raises DBConfig::NotFoundError
 ```
 
 ### Exception Handling
 
 ```ruby
+# Safe get - never raises exceptions, returns nil if not found
+value = DBConfig.get(:api_token)          # => nil if not found
+value = DBConfig.get(:api_token, default: "default_token")  # => "default_token" if not found
+
+# Strict get - raises exception if not found
 begin
-  value = DBConfig.get(:api_token)
+  value = DBConfig.get!(:api_token)
 rescue DBConfig::NotFoundError => e
   Rails.logger.warn "Missing config: #{e.message}"
   value = "default_token"
 end
-
-# Or use defaults to avoid exceptions
-value = DBConfig.get(:api_token, default: "default_token")
 ```
 
 ### Managing Configurations
@@ -103,15 +108,25 @@ DBConfig.set(:null, nil)                 # => nil (NilClass)
 ## API Reference
 
 ### `DBConfig.get(key, default: nil)`
-Retrieves configuration value for the given key.
+Safely retrieves configuration value for the given key.
 
 **Parameters:**
 - `key` (Symbol/String) - Configuration key to retrieve
-- `default` (optional) - Value to return and store if key doesn't exist
+- `default` (optional) - Value to return if key doesn't exist (not stored in database)
+
+**Returns:** Stored value with original type preserved, or default value, or `nil` if not found
+
+**Raises:** Never raises exceptions
+
+### `DBConfig.get!(key)`
+Strictly retrieves configuration value for the given key.
+
+**Parameters:**
+- `key` (Symbol/String) - Configuration key to retrieve
 
 **Returns:** Stored value with original type preserved
 
-**Raises:** `DBConfig::NotFoundError` if key doesn't exist and no default provided
+**Raises:** `DBConfig::NotFoundError` if key doesn't exist
 
 ### `DBConfig.set(key, value)`
 Stores configuration value with automatic type detection.
