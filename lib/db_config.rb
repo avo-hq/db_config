@@ -60,6 +60,10 @@ module DBConfig
       enabled
     end
 
+    def exist?(key)
+      get_record(key) != nil
+    end
+
     # Aliases for convenience
     alias_method :read, :get
     alias_method :write, :set

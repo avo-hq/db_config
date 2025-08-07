@@ -605,4 +605,52 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal "updated", DBConfig.read(:mix_test)
     assert_equal "updated", DBConfig.get(:mix_test)
   end
+
+  test "exist? returns true for existing keys" do
+    DBConfig.set(:exist_test, "value")
+    assert DBConfig.exist?(:exist_test)
+    
+    # Works with different data types
+    DBConfig.set(:exist_int, 42)
+    DBConfig.set(:exist_bool, true)
+    DBConfig.set(:exist_nil, nil)
+    DBConfig.set(:exist_array, [1, 2, 3])
+    
+    assert DBConfig.exist?(:exist_int)
+    assert DBConfig.exist?(:exist_bool)
+    assert DBConfig.exist?(:exist_nil)  # nil values still exist
+    assert DBConfig.exist?(:exist_array)
+  end
+
+  test "exist? returns false for non-existent keys" do
+    assert_not DBConfig.exist?(:non_existent_key)
+    assert_not DBConfig.exist?("string_key_that_doesnt_exist")
+    
+    # Returns false even after setting and deleting
+    DBConfig.set(:temp_key, "temp")
+    assert DBConfig.exist?(:temp_key)
+    
+    DBConfig.delete(:temp_key)
+    assert_not DBConfig.exist?(:temp_key)
+  end
+
+  test "exist? works with both symbol and string keys" do
+    DBConfig.set(:symbol_exist_test, "value")
+    
+    # Both forms should work
+    assert DBConfig.exist?(:symbol_exist_test)
+    assert DBConfig.exist?("symbol_exist_test")
+  end
+
+  test "exist? works with eager loaded keys" do
+    DBConfig.set(:eager_exist_test, "value")
+    DBConfig.eager_load(:eager_exist_test, true)
+    
+    # Should still return true for eager loaded keys
+    assert DBConfig.exist?(:eager_exist_test)
+    
+    # Disable eager loading and it should still exist
+    DBConfig.eager_load(:eager_exist_test, false)
+    assert DBConfig.exist?(:eager_exist_test)
+  end
 end
