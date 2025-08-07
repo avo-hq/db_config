@@ -101,7 +101,7 @@ Auto-detects and preserves: String, Integer, Float, Boolean, Array, Hash, nil
 ```ruby
 # All types preserved exactly
 DBConfig.set(:string, "hello")           # => "hello" (String)
-DBConfig.set(:integer, 42)               # => 42 (Integer) 
+DBConfig.set(:integer, 42)               # => 42 (Integer)
 DBConfig.set(:float, 3.14)               # => 3.14 (Float)
 DBConfig.set(:boolean, true)             # => true (Boolean)
 DBConfig.set(:array, [1, 2, 3])          # => [1, 2, 3] (Array)

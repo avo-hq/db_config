@@ -570,11 +570,11 @@ class DBConfigTest < ActiveSupport::TestCase
 
   test "read alias works like get" do
     DBConfig.set(:alias_test, "test_value")
-    
+
     # read should work exactly like get
     assert_equal "test_value", DBConfig.read(:alias_test)
     assert_equal DBConfig.get(:alias_test), DBConfig.read(:alias_test)
-    
+
     # read should return nil for non-existent keys
     assert_nil DBConfig.read(:non_existent)
   end
@@ -584,12 +584,12 @@ class DBConfigTest < ActiveSupport::TestCase
     result = DBConfig.write(:write_test, "written_value")
     assert_equal "written_value", result
     assert_equal "written_value", DBConfig.get(:write_test)
-    
+
     # write should handle different data types
     DBConfig.write(:write_int, 42)
     DBConfig.write(:write_bool, true)
     DBConfig.write(:write_array, [1, 2, 3])
-    
+
     assert_equal 42, DBConfig.read(:write_int)
     assert_equal true, DBConfig.read(:write_bool)
     assert_equal [1, 2, 3], DBConfig.read(:write_array)
@@ -600,7 +600,7 @@ class DBConfigTest < ActiveSupport::TestCase
     DBConfig.write(:mix_test, "original")
     assert_equal "original", DBConfig.read(:mix_test)
     assert_equal "original", DBConfig.get(:mix_test)
-    
+
     DBConfig.set(:mix_test, "updated")
     assert_equal "updated", DBConfig.read(:mix_test)
     assert_equal "updated", DBConfig.get(:mix_test)
