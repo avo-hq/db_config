@@ -7,7 +7,7 @@ Database-backed configuration store for Rails with automatic type conversion, de
 - **Type-safe storage**: Auto-detects and converts strings, integers, floats, booleans, arrays, hashes, and nil
 
 - **⚡ Eager loading**: Cache frequently accessed configs for near-zero database overhead
-- **Simple API**: `get`/`read`, `get!`, `set`/`write`, `delete`, `exist?`, `eager_load` methods
+- **Simple API**: `get`/`read`, `get!`, `set`/`write`, `delete`, `exist?`, `fetch`, `eager_load` methods
 
 ## Installation & Setup
 
@@ -45,6 +45,9 @@ DBConfig.get(:missing_key)                # => nil
 
 # Check if a config exists
 DBConfig.exist?(:page_size)               # => true or false
+
+# Fetch with block - stores block result if key doesn't exist
+DBConfig.fetch(:page_size) { 25 }         # => 25 (stores if not found)
 
 # Use || operator for fallback values
 DBConfig.get(:page_size) || 25            # => 25 if :page_size not set
@@ -180,6 +183,32 @@ Checks if a configuration key exists in the database.
 ```ruby
 DBConfig.exist?(:api_key)                 # => true or false
 DBConfig.exist?("api_key")                # Works with strings too
+```
+
+### `DBConfig.fetch(key, &block)`
+Gets the value if it exists, or executes the block and stores the result if it doesn't.
+
+**Parameters:**
+- `key` (Symbol/String) - Configuration key to fetch
+- `&block` - Block to execute if key doesn't exist (optional)
+
+**Returns:** Existing value if found, block result (which gets stored), or `nil` if key doesn't exist and no block given
+
+```ruby
+# If key exists, returns existing value (block not executed)
+DBConfig.set(:api_timeout, 30)
+timeout = DBConfig.fetch(:api_timeout) { 60 }    # => 30 (existing value)
+
+# If key doesn't exist, executes block and stores result
+cache_size = DBConfig.fetch(:cache_size) { 100 } # => 100 (stores 100)
+cache_size = DBConfig.fetch(:cache_size) { 200 } # => 100 (returns stored value)
+
+# Works with any data type
+features = DBConfig.fetch(:features) { ["feature1", "feature2"] }
+config = DBConfig.fetch(:api_config) { {endpoint: "api.com", timeout: 30} }
+
+# Returns nil if no block given and key doesn't exist
+DBConfig.fetch(:missing_key)  # => nil
 ```
 
 ### `DBConfig.delete(key)`

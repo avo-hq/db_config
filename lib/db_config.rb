@@ -64,6 +64,20 @@ module DBConfig
       get_record(key) != nil
     end
 
+    def fetch(key, &block)
+      record = get_record(key)
+
+      if record
+        convert_value(record.value, record.value_type)
+      elsif block_given?
+        # Execute block and store the result
+        value = yield
+        set(key, value)
+      end
+
+      # Return nil if key doesn't exist and no block given
+    end
+
     # Aliases for convenience
     alias_method :read, :get
     alias_method :write, :set
