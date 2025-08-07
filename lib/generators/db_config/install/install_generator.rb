@@ -37,6 +37,10 @@ module DbConfig
         say "  DBConfig.read(:allowed_countries)  # alias for get", :cyan
         say "  # => ['US', 'CA', 'UK']"
         say ""
+        say "  # Check if configuration exists"
+        say "  DBConfig.exist?(:page_size)", :cyan
+        say "  # => true or false"
+        say ""
         say "  # Use || operator for fallback values"
         say "  page_size = DBConfig.get(:page_size) || 25", :cyan
         say "  debug_mode = DBConfig.get(:debug_mode) || false", :cyan

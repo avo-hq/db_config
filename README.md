@@ -7,7 +7,7 @@ Database-backed configuration store for Rails with automatic type conversion, de
 - **Type-safe storage**: Auto-detects and converts strings, integers, floats, booleans, arrays, hashes, and nil
 
 - **⚡ Eager loading**: Cache frequently accessed configs for near-zero database overhead
-- **Simple API**: `get`/`read`, `get!`, `set`/`write`, `delete`, `eager_load` methods
+- **Simple API**: `get`/`read`, `get!`, `set`/`write`, `delete`, `exist?`, `eager_load` methods
 
 ## Installation & Setup
 
@@ -43,8 +43,11 @@ DBConfig.read(:enabled)     # => true (Boolean) - alias for get
 # Get missing config (safe - returns nil)
 DBConfig.get(:missing_key)                # => nil
 
+# Check if a config exists
+DBConfig.exist?(:page_size)               # => true or false
+
 # Use || operator for fallback values
-DBConfig.get(:page_size) || 25            # => 25 if :page_size :admin_emails not set
+DBConfig.get(:page_size) || 25            # => 25 if :page_size not set
 
 # Get missing config with get! (raises error)
 DBConfig.get!(:missing_key)               # => raises DBConfig::NotFoundError
@@ -162,6 +165,21 @@ Convenience alias for `DBConfig.set(key, value)`. Works exactly the same way.
 
 ```ruby
 DBConfig.write(:api_key, "secret123")     # Same as DBConfig.set(:api_key, "secret123")
+```
+
+### `DBConfig.exist?(key)`
+Checks if a configuration key exists in the database.
+
+**Parameters:**
+- `key` (Symbol/String) - Configuration key to check
+
+**Returns:** `true` if the key exists, `false` otherwise
+
+**Raises:** Never raises exceptions
+
+```ruby
+DBConfig.exist?(:api_key)                 # => true or false
+DBConfig.exist?("api_key")                # Works with strings too
 ```
 
 ### `DBConfig.delete(key)`
