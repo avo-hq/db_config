@@ -7,7 +7,7 @@ Database-backed configuration store for Rails with automatic type conversion, de
 - **Type-safe storage**: Auto-detects and converts strings, integers, floats, booleans, arrays, hashes, and nil
 
 - **⚡ Eager loading**: Cache frequently accessed configs for near-zero database overhead
-- **Simple API**: `get`, `get!`, `set`, `delete`, `eager_load` methods
+- **Simple API**: `get`/`read`, `get!`, `set`/`write`, `delete`, `eager_load` methods
 
 ## Installation & Setup
 
@@ -26,8 +26,8 @@ rails db:migrate
 
 ```ruby
 # Set any data type - auto-detected and preserved
-DBConfig.set(:site_title, "My App")
 DBConfig.set(:max_users, 1000)
+DBConfig.write(:site_title, "My App") # alias for set
 DBConfig.set(:enabled, true)
 DBConfig.set(:rate, 0.05)
 DBConfig.set(:tags, ["ruby", "rails"])
@@ -36,7 +36,7 @@ DBConfig.set(:feature, nil)
 
 # Get with type preservation
 DBConfig.get(:max_users)    # => 1000 (Integer)
-DBConfig.get(:enabled)      # => true (Boolean)
+DBConfig.read(:enabled)     # => true (Boolean) - alias for get
 
 
 
@@ -140,6 +140,14 @@ Strictly retrieves configuration value for the given key.
 
 **Raises:** `DBConfig::NotFoundError` if key doesn't exist
 
+### `DBConfig.read(key)` (alias for `get`)
+Convenience alias for `DBConfig.get(key)`. Works exactly the same way.
+
+```ruby
+DBConfig.read(:api_key)                   # Same as DBConfig.get(:api_key)
+api_key = DBConfig.read(:api_key) || "default"
+```
+
 ### `DBConfig.set(key, value)`
 Stores configuration value with automatic type detection.
 
@@ -148,6 +156,13 @@ Stores configuration value with automatic type detection.
 - `value` (Any) - Value to store (String, Integer, Float, Boolean, Array, Hash, nil)
 
 **Returns:** The stored value
+
+### `DBConfig.write(key, value)` (alias for `set`)
+Convenience alias for `DBConfig.set(key, value)`. Works exactly the same way.
+
+```ruby
+DBConfig.write(:api_key, "secret123")     # Same as DBConfig.set(:api_key, "secret123")
+```
 
 ### `DBConfig.delete(key)`
 Removes configuration from database.

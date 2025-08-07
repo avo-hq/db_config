@@ -26,7 +26,7 @@ module DbConfig
         say ""
         say "  # Set different types of configuration values"
         say "  DBConfig.set(:homepage_cta, 'Click here now!')", :cyan
-        say "  DBConfig.set(:max_users, 1000)", :cyan
+        say "  DBConfig.write(:max_users, 1000)  # alias for set", :cyan
         say "  DBConfig.set(:maintenance_mode, false)", :cyan
         say "  DBConfig.set(:allowed_countries, ['US', 'CA', 'UK'])", :cyan
         say "  DBConfig.set(:api_config, { endpoint: 'api.com', timeout: 30 })", :cyan
@@ -34,7 +34,7 @@ module DbConfig
         say "  # Get configuration values (returns original data type)"
         say "  DBConfig.get(:homepage_cta)", :cyan
         say "  # => 'Click here now!'"
-        say "  DBConfig.get(:allowed_countries)", :cyan
+        say "  DBConfig.read(:allowed_countries)  # alias for get", :cyan
         say "  # => ['US', 'CA', 'UK']"
         say ""
         say "  # Use || operator for fallback values"
