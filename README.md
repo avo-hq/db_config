@@ -6,7 +6,7 @@ Database-backed configuration store for Rails with automatic type conversion, de
 
 - **Type-safe storage**: Auto-detects and converts strings, integers, floats, booleans, arrays, hashes, and nil
 
-- **⚡ Eager loading**: Cache frequently accessed configs for near-zero database overhead
+- **Eager loading**: Cache frequently accessed configs for near-zero database overhead
 - **Simple API**: `get`/`read`, `get!`, `set`/`write`, `update`, `delete`, `exist?`, `fetch` methods
 
 ## Installation & Setup
@@ -18,30 +18,37 @@ gem "db_config"
 
 ```bash
 bundle install
+```
+```bash
 rails generate db_config:install
+```
+```bash
 rails db:migrate
 ```
 
 ## Usage
 
+### Set any data type - auto-detected and preserved
 ```ruby
-# Set any data type - auto-detected and preserved
 DBConfig.set(:max_users, 1000)
-DBConfig.write(:site_title, "My App") # alias for set
+DBConfig.write(:site_title, "My App") # write is an alias for set
 DBConfig.set(:enabled, true)
 DBConfig.set(:rate, 0.05)
 DBConfig.set(:tags, ["ruby", "rails"])
 DBConfig.set(:config, {api: "https://api.example.com", timeout: 30})
 DBConfig.set(:feature, nil)
+```
 
-# Get with type preservation
+### Get with type preservation
+```ruby
 DBConfig.get(:max_users)    # => 1000 (Integer)
 DBConfig.read(:enabled)     # => true (Boolean) - alias for get
 
-
-
 # Get missing config (safe - returns nil)
 DBConfig.get(:missing_key)                # => nil
+
+# Get missing config with get! (raises error)
+DBConfig.get!(:missing_key)               # => raises DBConfig::NotFoundError
 
 # Check if a config exists
 DBConfig.exist?(:page_size)               # => true or false
@@ -52,19 +59,11 @@ DBConfig.fetch(:page_size) { 25 }         # => 25 (stores if not found)
 # Use || operator for fallback values
 DBConfig.get(:page_size) || 25            # => 25 if :page_size not set
 
-# Get missing config with get! (raises error)
-DBConfig.get!(:missing_key)               # => raises DBConfig::NotFoundError
 ```
 
 ### Exception Handling
 
 ```ruby
-# Safe get - never raises exceptions, returns nil if not found
-value = DBConfig.get(:api_token)          # => nil if not found
-
-# Use || operator for fallback values
-api_token = DBConfig.get(:api_token) || "default_token"
-
 # Strict get - raises exception if not found
 begin
   value = DBConfig.get!(:api_token)
@@ -78,12 +77,16 @@ end
 
 ```ruby
 # Update configurations with type safety
-DBConfig.update(:max_users, value: 500)              # Update value keeping same type
-DBConfig.update(:site_enabled, type: "Boolean")      # Convert "true" string to boolean true
-DBConfig.update(:cache_ttl, value: 3600, eager_load: true)  # Update value and enable eager loading
+DBConfig.set(:max_users, 1000)                              # Set value and type to Integer
+DBConfig.update(:max_users, value: 500)                     # Update value keeping same type
 
-# Delete configurations
-DBConfig.delete(:old_setting)             # => true if deleted, false if not found
+DBConfig.set(:site_enabled, "true")                         # Set value and type to String
+DBConfig.update(:site_enabled, type: "Boolean")             # Convert "true" string to boolean true
+
+DBConfig.set(:cache_ttl, 3600)                              # Set value and type to Integer
+DBConfig.update(:cache_ttl, value: 4600, eager_load: true)  # Update value and enable eager loading
+
+DBConfig.delete(:old_setting)                               # => true if deleted, false if not found
 ```
 
 ### ⚡ Eager Loading
@@ -95,10 +98,11 @@ DBConfig.delete(:old_setting)             # => true if deleted, false if not fou
 # Mark configs for eager loading (loaded once per request, cached)
 DBConfig.set(:api_key, "secret123")
 DBConfig.update(:api_key, eager_load: true)   # Enable eager loading
-DBConfig.update(:api_key, eager_load: false)  # Disable eager loading
 
 # Now served from cache (no database query)
 DBConfig.get(:api_key)                         # Served from cache
+
+DBConfig.update(:api_key, eager_load: false)  # Disable eager loading
 ```
 
 > [!TIP]
@@ -155,8 +159,7 @@ Strictly retrieves configuration value for the given key.
 Convenience alias for `DBConfig.get(key)`. Works exactly the same way.
 
 ```ruby
-DBConfig.read(:api_key)                   # Same as DBConfig.get(:api_key)
-api_key = DBConfig.read(:api_key) || "default"
+DBConfig.read(:api_key) # Same as DBConfig.get(:api_key)
 ```
 
 ### `DBConfig.set(key, value)`
