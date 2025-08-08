@@ -26,6 +26,14 @@ rails generate db_config:install
 rails db:migrate
 ```
 
+## Avo Integration
+
+> [!TIP]
+> If you're using [Avo](https://avohq.io), this gem ships with a pre-configured resource out of the box that should be visible on the menu as "Configurations". If you're using Avo Pro with a custom menu, you can render the resource using:
+> ```ruby
+> resource :db_config
+> ```
+
 ## Usage
 
 ### Set any data type - auto-detected and preserved
