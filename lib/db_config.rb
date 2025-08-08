@@ -104,8 +104,6 @@ module DBConfig
       convert_value(record.value, record.value_type)
     end
 
-
-
     def exist?(key)
       get_record(key) != nil
     end
