@@ -7,7 +7,7 @@ Database-backed configuration store for Rails with automatic type conversion, de
 - **Type-safe storage**: Auto-detects and converts strings, integers, floats, booleans, arrays, hashes, and nil
 
 - **⚡ Eager loading**: Cache frequently accessed configs for near-zero database overhead
-- **Simple API**: `get`/`read`, `get!`, `set`/`write`, `delete`, `exist?`, `fetch`, `eager_load` methods
+- **Simple API**: `get`/`read`, `get!`, `set`/`write`, `update`, `delete`, `exist?`, `fetch` methods
 
 ## Installation & Setup
 
@@ -77,6 +77,11 @@ end
 ### Managing Configurations
 
 ```ruby
+# Update configurations with type safety
+DBConfig.update(:max_users, value: 500)              # Update value keeping same type
+DBConfig.update(:site_enabled, type: "Boolean")      # Convert "true" string to boolean true
+DBConfig.update(:cache_ttl, value: 3600, eager_load: true)  # Update value and enable eager loading
+
 # Delete configurations
 DBConfig.delete(:old_setting)             # => true if deleted, false if not found
 ```
@@ -89,11 +94,11 @@ DBConfig.delete(:old_setting)             # => true if deleted, false if not fou
 ```ruby
 # Mark configs for eager loading (loaded once per request, cached)
 DBConfig.set(:api_key, "secret123")
-DBConfig.eager_load(:api_key, true)       # Enable eager loading
-DBConfig.eager_load(:api_key, false)      # Disable eager loading
+DBConfig.update(:api_key, eager_load: true)   # Enable eager loading
+DBConfig.update(:api_key, eager_load: false)  # Disable eager loading
 
 # Now served from cache (no database query)
-DBConfig.get(:api_key)                    # Served from cache
+DBConfig.get(:api_key)                         # Served from cache
 ```
 
 > [!TIP]
@@ -219,14 +224,50 @@ Removes configuration from database.
 
 **Returns:** `true` if deleted, `false` if key didn't exist
 
-### `DBConfig.eager_load(key, enabled)`
-Toggles eager loading for frequently accessed configurations.
+### `DBConfig.update(key, **options)`
+Updates configuration entry with intelligent type conversion and validation.
 
 **Parameters:**
-- `key` (Symbol/String) - Configuration key
-- `enabled` (Boolean) - Enable (true) or disable (false) eager loading
+- `key` (Symbol/String) - Configuration key (must exist)
+- `**options` - Keyword arguments for updates:
+  - `value: Any` - New value to store (with type compatibility checking)
+  - `type: String` - Target type for conversion ("String", "Integer", "Float", "Boolean", "Array", "Hash", "NilClass")
+  - `eager_load: Boolean` - Enable/disable eager loading
 
-**Returns:** The enabled state
+**Returns:** The updated value in its final type
+
+**Type Compatibility:**
+- When updating `value`: New values can change type automatically (e.g., "hello" → 42 changes String to Integer)
+- When updating `type`: Only compatible conversions are allowed (e.g., "123" → Integer, "hello" → Integer fails)
+- Incompatible type conversions raise `ArgumentError` with detailed message
+
+**Examples:**
+```ruby
+# Update value (can change type automatically)
+DBConfig.set(:config_value, "hello")
+DBConfig.update(:config_value, value: 42)    # String → Integer (automatic)
+
+# Change type explicitly (requires compatibility)
+DBConfig.set(:enabled, "true")              # "true" is set as a string  
+DBConfig.update(:enabled, type: "Boolean")  # "true" → true (compatible conversion)
+
+# Update multiple attributes
+DBConfig.update(:cache_size, value: 1000, eager_load: true)
+
+# Examples from the specification
+DBConfig.update(:key, eager_load: true)
+DBConfig.update(:key, type: "Boolean")      # Only works if current value is compatible
+DBConfig.update(:key, eager_load: true, value: true)  # ✅ Always works
+
+# Fails only on incompatible TYPE conversions (not value updates)
+DBConfig.set(:username, "admin")
+DBConfig.update(:username, type: "Integer")  # ❌ Fails: "admin" can't become Integer
+DBConfig.update(:username, value: 123)       # ✅ Works: new value can be any type
+```
+
+**Raises:** 
+- `DBConfig::NotFoundError` if key doesn't exist
+- `ArgumentError` for invalid types or incompatible conversions
 
 ## Contributing
 
