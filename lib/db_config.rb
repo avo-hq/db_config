@@ -62,12 +62,12 @@ module DBConfig
 
       # Process updates
       updates = {}
-      
+
       # Handle value update - new values can change type freely
       if kwargs.key?(:value)
         new_value = kwargs[:value]
         new_type = determine_type(new_value)
-        
+
         updates[:value] = serialize_value(new_value)
         updates[:value_type] = new_type
       end
@@ -75,31 +75,31 @@ module DBConfig
       # Handle type update with compatibility check
       if kwargs.key?(:type)
         target_type = kwargs[:type]
-        
+
         # Validate target type
         unless %w[String Integer Float Boolean Array Hash NilClass].include?(target_type)
           raise ArgumentError, "Invalid type: #{target_type}. Must be one of: String, Integer, Float, Boolean, Array, Hash, NilClass"
         end
-        
+
         # Check if current value can be converted to target type
         unless value_convertible_to_type?(current_value, current_type, target_type)
           raise ArgumentError, "Can't modify type because value \"#{current_value}\" doesn't support conversion from \"#{current_type}\" to \"#{target_type}\""
         end
-        
+
         # Convert value to new type
         converted_value = convert_value_to_type(current_value, current_type, target_type)
         updates[:value] = serialize_value(converted_value)
         updates[:value_type] = target_type
       end
 
-      # Handle eager_load update  
+      # Handle eager_load update
       if kwargs.key?(:eager_load)
         updates[:eager_load] = kwargs[:eager_load]
       end
 
       # Apply updates
       record.update!(updates)
-      
+
       # Return the updated value in its new type
       convert_value(record.value, record.value_type)
     end
@@ -191,7 +191,7 @@ module DBConfig
     def types_compatible?(current_value, current_type, new_value, new_type)
       # If types are the same, always compatible
       return true if current_type == new_type
-      
+
       # Allow specific compatible conversions
       case [current_type, new_type]
       when ["Boolean", "String"], ["Integer", "String"], ["Float", "String"], ["NilClass", "String"]
@@ -218,7 +218,7 @@ module DBConfig
     def value_convertible_to_type?(value, current_type, target_type)
       # If types are the same, always convertible
       return true if current_type == target_type
-      
+
       case target_type
       when "String"
         true  # Everything can be converted to string
@@ -258,7 +258,7 @@ module DBConfig
 
     def convert_value_to_type(value, current_type, target_type)
       return value if current_type == target_type
-      
+
       case target_type
       when "String"
         value.to_s

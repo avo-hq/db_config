@@ -248,7 +248,7 @@ DBConfig.set(:config_value, "hello")
 DBConfig.update(:config_value, value: 42)    # String → Integer (automatic)
 
 # Change type explicitly (requires compatibility)
-DBConfig.set(:enabled, "true")              # "true" is set as a string  
+DBConfig.set(:enabled, "true")              # "true" is set as a string
 DBConfig.update(:enabled, type: "Boolean")  # "true" → true (compatible conversion)
 
 # Update multiple attributes
@@ -265,7 +265,7 @@ DBConfig.update(:username, type: "Integer")  # ❌ Fails: "admin" can't become I
 DBConfig.update(:username, value: 123)       # ✅ Works: new value can be any type
 ```
 
-**Raises:** 
+**Raises:**
 - `DBConfig::NotFoundError` if key doesn't exist
 - `ArgumentError` for invalid types or incompatible conversions
 
