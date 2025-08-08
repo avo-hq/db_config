@@ -151,7 +151,7 @@ Use the `||` operator to provide fallback values when keys don't exist:
 page_size = DBConfig.get(:page_size) || 25
 ```
 
-### Writing Methods  
+### Writing Methods
 | Method | Description | Example |
 |--------|-------------|---------|
 | `set(key, value)` | Store configuration | `DBConfig.set(:api_key, "secret")` |

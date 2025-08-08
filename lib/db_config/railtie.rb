@@ -25,7 +25,7 @@ module DBConfig
       if defined?(Avo)
         db_config_app_directory = DBConfig::Railtie.root.join("app/avo").to_s
         db_config_avo_controllers_directory = DBConfig::Railtie.root.join("app/controllers/avo").to_s
-        
+
         ActiveSupport::Dependencies.autoload_paths.delete(db_config_app_directory)
 
         Rails.autoloaders.main.push_dir(db_config_app_directory, namespace: Avo)

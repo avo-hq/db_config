@@ -2,7 +2,7 @@ class Avo::Resources::DbConfig < Avo::BaseResource
   self.model_class = ::DBConfig::ConfigRecord
   self.title = :key
   self.search = {
-    query: -> { 
+    query: -> {
       query.ransack(
         key_cont: q,
         id_cont: q,
@@ -10,7 +10,7 @@ class Avo::Resources::DbConfig < Avo::BaseResource
         value_type_cont: q,
         eager_load_cont: q,
         m: "or"
-      ).result(distinct: false) 
+      ).result(distinct: false)
     },
     item: -> {
       {
@@ -19,7 +19,7 @@ class Avo::Resources::DbConfig < Avo::BaseResource
       }
     }
   }
-  
+
   self.description = -> {
     base = if view.form?
       "If you're not familiar with DBConfig, please refer to the <a href='https://github.com/avo-hq/db_config' target='_blank'>DBConfig</a> documentation.".html_safe
@@ -69,16 +69,16 @@ class Avo::Resources::DbConfig < Avo::BaseResource
       as: :select,
       name: "Type",
       options: DBConfig::ConfigRecord::VALUE_TYPES, disabled: -> { record.persisted? },
-      help: -> { 
+      help: -> {
         return if !record.persisted?
 
         "Can't change the type of a configuration that has already been set.<br>
-        Use the 'Force Change Type' action to force the type change." 
+        Use the 'Force Change Type' action to force the type change."
 
         # path, data = Avo::Resources::DbConfig::ForceChangeType.link_arguments(resource: resource)
 
         # "Can't change the type of a configuration that has already been set.<br>
-        # Click #{link_to("here", path, data: data).html_safe} to force the type change." 
+        # Click #{link_to("here", path, data: data).html_safe} to force the type change."
       }
 
     field :eager_load, as: :boolean
