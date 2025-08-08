@@ -2,8 +2,10 @@ module DBConfig
   class ConfigRecord < ActiveRecord::Base
     self.table_name = "db_config"
 
+    VALUE_TYPES = %w[String Integer Float Boolean Array Hash NilClass]
+
     validates :key, presence: true, uniqueness: true
-    validates :value_type, presence: true, inclusion: {in: %w[String Integer Float Boolean Array Hash NilClass]}
+    validates :value_type, presence: true, inclusion: {in: VALUE_TYPES}
     validates :eager_load, inclusion: {in: [true, false]}
 
     # Sync cache automatically on any changes

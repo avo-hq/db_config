@@ -77,8 +77,8 @@ module DBConfig
         target_type = kwargs[:type]
 
         # Validate target type
-        unless %w[String Integer Float Boolean Array Hash NilClass].include?(target_type)
-          raise ArgumentError, "Invalid type: #{target_type}. Must be one of: String, Integer, Float, Boolean, Array, Hash, NilClass"
+        unless DBConfig::ConfigRecord::VALUE_TYPES.include?(target_type)
+          raise ArgumentError, "Invalid type: #{target_type}. Must be one of: #{DBConfig::ConfigRecord::VALUE_TYPES.join(", ")}"
         end
 
         # Check if current value can be converted to target type
