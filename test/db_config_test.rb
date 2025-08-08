@@ -132,22 +132,22 @@ class DBConfigTest < ActiveSupport::TestCase
   test "can set eager_load flag" do
     DBConfig.set(:eager_key, "value")
 
-    result = DBConfig.eager_load(:eager_key, true)
-    assert_equal true, result
+    result = DBConfig.update(:eager_key, eager_load: true)
+    assert_equal "value", result
 
     record = DBConfig::ConfigRecord.find_by(key: "eager_key")
     assert_equal true, record.eager_load
   end
 
-  test "eager_load raises error for non-existent key" do
+  test "update raises error for non-existent key" do
     assert_raises(DBConfig::NotFoundError) do
-      DBConfig.eager_load(:non_existent, true)
+      DBConfig.update(:non_existent, eager_load: true)
     end
   end
 
   test "preserves eager_load flag when updating value" do
     DBConfig.set(:preserve_key, "value")
-    DBConfig.eager_load(:preserve_key, true)
+    DBConfig.update(:preserve_key, eager_load: true)
 
     DBConfig.set(:preserve_key, "new_value")
 
@@ -226,9 +226,9 @@ class DBConfigTest < ActiveSupport::TestCase
     result = DBConfig.get(:nil_eager_test)
     assert_nil result
 
-    # Can't set eager_load flag on non-existent record
+    # Can't update eager_load flag on non-existent record
     assert_raises(DBConfig::NotFoundError) do
-      DBConfig.eager_load(:nil_eager_test, true)
+      DBConfig.update(:nil_eager_test, eager_load: true)
     end
 
     # Still no record should exist
@@ -336,8 +336,8 @@ class DBConfigTest < ActiveSupport::TestCase
     DBConfig.set(:normal_config, "normal")
 
     # Mark some as eager load
-    DBConfig.eager_load(:eager_config1, true)
-    DBConfig.eager_load(:eager_config2, true)
+    DBConfig.update(:eager_config1, eager_load: true)
+    DBConfig.update(:eager_config2, eager_load: true)
 
     # Clear current attributes to simulate new request
     DBConfig::Current.reset
@@ -361,7 +361,7 @@ class DBConfigTest < ActiveSupport::TestCase
   test "get method checks eager loaded configs first" do
     # Create and set config as eager load
     DBConfig.set(:test_config, "original_value")
-    DBConfig.eager_load(:test_config, true)
+    DBConfig.update(:test_config, eager_load: true)
 
     # Load eager configs
     DBConfig::Current.load_eager_configs!
@@ -390,7 +390,7 @@ class DBConfigTest < ActiveSupport::TestCase
   test "set method updates eager loaded cache" do
     # Create and set config as eager load
     DBConfig.set(:cache_test, "original")
-    DBConfig.eager_load(:cache_test, true)
+    DBConfig.update(:cache_test, eager_load: true)
 
     # Load eager configs
     DBConfig::Current.load_eager_configs!
@@ -405,7 +405,7 @@ class DBConfigTest < ActiveSupport::TestCase
   test "delete method removes from cache" do
     # Create and set config as eager load
     DBConfig.set(:delete_test, "value")
-    DBConfig.eager_load(:delete_test, true)
+    DBConfig.update(:delete_test, eager_load: true)
 
     # Load eager configs
     DBConfig::Current.load_eager_configs!
@@ -420,7 +420,7 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_not DBConfig::Current.cached_records.key?("delete_test")
   end
 
-  test "eager_load method updates cache appropriately" do
+  test "update method updates cache appropriately" do
     # Create a config
     DBConfig.set(:toggle_test, "value")
 
@@ -429,14 +429,14 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_not DBConfig::Current.cached_records.key?("toggle_test")
 
     # Enable eager loading
-    DBConfig.eager_load(:toggle_test, true)
+    DBConfig.update(:toggle_test, eager_load: true)
 
     # Should now be in cache
     assert DBConfig::Current.cached_records.key?("toggle_test")
     assert_equal "value", DBConfig.get(:toggle_test)
 
     # Disable eager loading
-    DBConfig.eager_load(:toggle_test, false)
+    DBConfig.update(:toggle_test, eager_load: false)
 
     # Should still be in cache (since we accessed it)
     assert DBConfig::Current.cached_records.key?("toggle_test")
@@ -445,7 +445,7 @@ class DBConfigTest < ActiveSupport::TestCase
   test "current attributes are thread safe" do
     # This test simulates multiple threads/requests
     DBConfig.set(:thread_test, "value1")
-    DBConfig.eager_load(:thread_test, true)
+    DBConfig.update(:thread_test, eager_load: true)
 
     # Simulate first request
     DBConfig::Current.load_eager_configs!
@@ -477,7 +477,7 @@ class DBConfigTest < ActiveSupport::TestCase
 
     # Mark all as eager load
     %w[string_config integer_config float_config boolean_config array_config hash_config nil_config].each do |key|
-      DBConfig.eager_load(key, true)
+      DBConfig.update(key, eager_load: true)
     end
 
     # Load and verify
@@ -528,7 +528,7 @@ class DBConfigTest < ActiveSupport::TestCase
   test "model callbacks handle cache sync automatically" do
     # Create and mark as eager load (will be cached via callback)
     DBConfig.set(:callback_test, "value")
-    DBConfig.eager_load(:callback_test, true)
+    DBConfig.update(:callback_test, eager_load: true)
 
     # Load eager configs to get it in cache
     DBConfig::Current.load_eager_configs!
@@ -559,7 +559,7 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal "value2", cached_record.value
 
     # Eager load operation syncs
-    DBConfig.eager_load(:auto_sync_test, true)
+    DBConfig.update(:auto_sync_test, eager_load: true)
     cached_record = DBConfig::Current.cached_records["auto_sync_test"]
     assert_equal true, cached_record.eager_load
 
@@ -644,13 +644,13 @@ class DBConfigTest < ActiveSupport::TestCase
 
   test "exist? works with eager loaded keys" do
     DBConfig.set(:eager_exist_test, "value")
-    DBConfig.eager_load(:eager_exist_test, true)
+    DBConfig.update(:eager_exist_test, eager_load: true)
 
     # Should still return true for eager loaded keys
     assert DBConfig.exist?(:eager_exist_test)
 
     # Disable eager loading and it should still exist
-    DBConfig.eager_load(:eager_exist_test, false)
+    DBConfig.update(:eager_exist_test, eager_load: false)
     assert DBConfig.exist?(:eager_exist_test)
   end
 
@@ -754,5 +754,295 @@ class DBConfigTest < ActiveSupport::TestCase
     end
     assert_equal 57, result
     assert_equal 57, DBConfig.get(:fetch_complex)
+  end
+
+  # Tests for update method
+  test "update method requires existing key" do
+    assert_raises(DBConfig::NotFoundError) do
+      DBConfig.update(:non_existent_key, value: "new_value")
+    end
+  end
+
+  test "update method can update value keeping same type" do
+    DBConfig.set(:update_test, "original")
+    result = DBConfig.update(:update_test, value: "updated")
+
+    assert_equal "updated", result
+    assert_equal "updated", DBConfig.get(:update_test)
+
+    # Type should remain the same
+    record = DBConfig::ConfigRecord.find_by(key: "update_test")
+    assert_equal "String", record.value_type
+  end
+
+  test "update method can update value with type change when compatible" do
+    # String to Integer (when string contains only digits)
+    DBConfig.set(:string_to_int, "42")
+    result = DBConfig.update(:string_to_int, value: 123)
+
+    assert_equal 123, result
+    assert_equal 123, DBConfig.get(:string_to_int)
+
+    record = DBConfig::ConfigRecord.find_by(key: "string_to_int")
+    assert_equal "Integer", record.value_type
+  end
+
+  test "update method allows type changes when updating value" do
+    DBConfig.set(:type_change_test, "hello")
+
+    # Setting a new value of different type should work and change type automatically
+    result = DBConfig.update(:type_change_test, value: 42)
+    assert_equal 42, result
+    assert_equal 42, DBConfig.get(:type_change_test)
+
+    # Type should have changed
+    record = DBConfig::ConfigRecord.find_by(key: "type_change_test")
+    assert_equal "Integer", record.value_type
+  end
+
+  test "update method specific scenario from user request" do
+    # This is the exact scenario from the user request
+    DBConfig.set(:incompatible_test, "hello")
+
+    # This should NOT raise and should change the type behind the scenes
+    result = DBConfig.update(:incompatible_test, value: 42)
+    assert_equal 42, result
+    assert_equal 42, DBConfig.get(:incompatible_test)
+
+    # Verify the type changed from String to Integer
+    record = DBConfig::ConfigRecord.find_by(key: "incompatible_test")
+    assert_equal "Integer", record.value_type
+  end
+
+  test "update method can change type explicitly when compatible" do
+    DBConfig.set(:explicit_type_change_test, "123")
+    result = DBConfig.update(:explicit_type_change_test, type: "Integer")
+
+    assert_equal 123, result
+    assert_equal 123, DBConfig.get(:explicit_type_change_test)
+
+    record = DBConfig::ConfigRecord.find_by(key: "explicit_type_change_test")
+    assert_equal "Integer", record.value_type
+  end
+
+  test "update method prevents incompatible explicit type changes" do
+    DBConfig.set(:type_incompatible_test, "hello")
+
+    assert_raises(ArgumentError, /Can't modify type because value "hello" doesn't support conversion from "String" to "Integer"/) do
+      DBConfig.update(:type_incompatible_test, type: "Integer")
+    end
+
+    # Original value should remain unchanged
+    assert_equal "hello", DBConfig.get(:type_incompatible_test)
+    record = DBConfig::ConfigRecord.find_by(key: "type_incompatible_test")
+    assert_equal "String", record.value_type
+  end
+
+  test "update method validates target type" do
+    DBConfig.set(:invalid_type_test, "value")
+
+    assert_raises(ArgumentError, /Invalid type: InvalidType/) do
+      DBConfig.update(:invalid_type_test, type: "InvalidType")
+    end
+  end
+
+  test "update method can update eager_load flag" do
+    DBConfig.set(:eager_update_test, "value")
+
+    # Initially eager_load should be false
+    record = DBConfig::ConfigRecord.find_by(key: "eager_update_test")
+    assert_equal false, record.eager_load
+
+    # Update eager_load flag
+    result = DBConfig.update(:eager_update_test, eager_load: true)
+    assert_equal "value", result
+
+    # Check that eager_load flag was updated
+    record.reload
+    assert_equal true, record.eager_load
+  end
+
+  test "update method can update multiple attributes at once" do
+    DBConfig.set(:multi_update_test, "42")
+
+    result = DBConfig.update(:multi_update_test, value: "123", eager_load: true)
+
+    assert_equal "123", result
+    assert_equal "123", DBConfig.get(:multi_update_test)
+
+    record = DBConfig::ConfigRecord.find_by(key: "multi_update_test")
+    assert_equal "String", record.value_type
+    assert_equal true, record.eager_load
+  end
+
+  test "update method type compatibility - Boolean to String" do
+    DBConfig.set(:bool_to_string, true)
+    result = DBConfig.update(:bool_to_string, type: "String")
+
+    assert_equal "true", result
+    assert_equal "true", DBConfig.get(:bool_to_string)
+  end
+
+  test "update method type compatibility - Integer to String" do
+    DBConfig.set(:int_to_string, 42)
+    result = DBConfig.update(:int_to_string, type: "String")
+
+    assert_equal "42", result
+    assert_equal "42", DBConfig.get(:int_to_string)
+  end
+
+  test "update method type compatibility - String to Boolean" do
+    DBConfig.set(:string_to_bool_true, "true")
+    result = DBConfig.update(:string_to_bool_true, type: "Boolean")
+    assert_equal true, result
+
+    DBConfig.set(:string_to_bool_false, "false")
+    result = DBConfig.update(:string_to_bool_false, type: "Boolean")
+    assert_equal false, result
+
+    DBConfig.set(:string_to_bool_1, "1")
+    result = DBConfig.update(:string_to_bool_1, type: "Boolean")
+    assert_equal true, result
+
+    DBConfig.set(:string_to_bool_0, "0")
+    result = DBConfig.update(:string_to_bool_0, type: "Boolean")
+    assert_equal false, result
+  end
+
+  test "update method type compatibility - String to Boolean fails for invalid strings" do
+    DBConfig.set(:invalid_bool_string, "maybe")
+
+    assert_raises(ArgumentError) do
+      DBConfig.update(:invalid_bool_string, type: "Boolean")
+    end
+  end
+
+  test "update method type compatibility - String to Integer" do
+    DBConfig.set(:string_to_int_valid, "123")
+    result = DBConfig.update(:string_to_int_valid, type: "Integer")
+    assert_equal 123, result
+
+    DBConfig.set(:string_to_int_negative, "-456")
+    result = DBConfig.update(:string_to_int_negative, type: "Integer")
+    assert_equal(-456, result)
+  end
+
+  test "update method type compatibility - String to Integer fails for non-numeric strings" do
+    DBConfig.set(:invalid_int_string, "12.34")
+
+    assert_raises(ArgumentError) do
+      DBConfig.update(:invalid_int_string, type: "Integer")
+    end
+  end
+
+  test "update method type compatibility - String to Float" do
+    DBConfig.set(:string_to_float, "123.45")
+    result = DBConfig.update(:string_to_float, type: "Float")
+    assert_equal 123.45, result
+
+    DBConfig.set(:string_to_float_int, "789")
+    result = DBConfig.update(:string_to_float_int, type: "Float")
+    assert_equal 789.0, result
+  end
+
+  test "update method type compatibility - Integer to Float" do
+    DBConfig.set(:int_to_float, 42)
+    result = DBConfig.update(:int_to_float, type: "Float")
+    assert_equal 42.0, result
+  end
+
+  test "update method type compatibility - Float to Integer (whole numbers only)" do
+    DBConfig.set(:float_to_int_whole, 42.0)
+    result = DBConfig.update(:float_to_int_whole, type: "Integer")
+    assert_equal 42, result
+  end
+
+  test "update method type compatibility - Float to Integer fails for non-whole numbers" do
+    DBConfig.set(:float_to_int_fractional, 42.5)
+
+    assert_raises(ArgumentError) do
+      DBConfig.update(:float_to_int_fractional, type: "Integer")
+    end
+  end
+
+  test "update method type compatibility - Boolean to Integer" do
+    DBConfig.set(:bool_true_to_int, true)
+    result = DBConfig.update(:bool_true_to_int, type: "Integer")
+    assert_equal 1, result
+
+    DBConfig.set(:bool_false_to_int, false)
+    result = DBConfig.update(:bool_false_to_int, type: "Integer")
+    assert_equal 0, result
+  end
+
+  test "update method type compatibility - Integer to Boolean" do
+    DBConfig.set(:int_1_to_bool, 1)
+    result = DBConfig.update(:int_1_to_bool, type: "Boolean")
+    assert_equal true, result
+
+    DBConfig.set(:int_0_to_bool, 0)
+    result = DBConfig.update(:int_0_to_bool, type: "Boolean")
+    assert_equal false, result
+  end
+
+  test "update method type compatibility - Integer to Boolean fails for non 0/1 values" do
+    DBConfig.set(:int_invalid_bool, 42)
+
+    assert_raises(ArgumentError) do
+      DBConfig.update(:int_invalid_bool, type: "Boolean")
+    end
+  end
+
+  test "update method type compatibility - Boolean to Float" do
+    DBConfig.set(:bool_true_to_float, true)
+    result = DBConfig.update(:bool_true_to_float, type: "Float")
+    assert_equal 1.0, result
+
+    DBConfig.set(:bool_false_to_float, false)
+    result = DBConfig.update(:bool_false_to_float, type: "Float")
+    assert_equal 0.0, result
+  end
+
+  test "update method prevents conversion to unsupported types" do
+    DBConfig.set(:no_array_conversion, "test")
+
+    assert_raises(ArgumentError) do
+      DBConfig.update(:no_array_conversion, type: "Array")
+    end
+
+    assert_raises(ArgumentError) do
+      DBConfig.update(:no_array_conversion, type: "Hash")
+    end
+
+    assert_raises(ArgumentError) do
+      DBConfig.update(:no_array_conversion, type: "NilClass")
+    end
+  end
+
+  test "update method works with symbol and string keys" do
+    DBConfig.set(:symbol_key_update, "original")
+
+    # Update using symbol key
+    result = DBConfig.update(:symbol_key_update, value: "updated_symbol")
+    assert_equal "updated_symbol", result
+
+    # Update using string key
+    result = DBConfig.update("symbol_key_update", value: "updated_string")
+    assert_equal "updated_string", result
+
+    assert_equal "updated_string", DBConfig.get(:symbol_key_update)
+  end
+
+  test "update method with no changes returns current value" do
+    DBConfig.set(:no_change_test, "value")
+    original_record = DBConfig::ConfigRecord.find_by(key: "no_change_test")
+    original_updated_at = original_record.updated_at
+
+    result = DBConfig.update(:no_change_test)
+    assert_equal "value", result
+
+    # Record should not have been updated (no new timestamp)
+    original_record.reload
+    assert_equal original_updated_at.to_i, original_record.updated_at.to_i
   end
 end
