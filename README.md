@@ -134,15 +134,14 @@ DBConfig.set(:null, nil)                 # => nil (NilClass)
 
 ## API Reference
 
-### `DBConfig.get(key)`
-Safely retrieves configuration value for the given key.
-
-**Parameters:**
-- `key` (Symbol/String) - Configuration key to retrieve
-
-**Returns:** Stored value with original type preserved, or `nil` if not found
-
-**Raises:** Never raises exceptions
+### Reading Methods
+| Method | Description | Raises Errors | Example |
+|--------|-------------|---------------|---------|
+| `get(key)` | Safe retrieval, returns nil if not found | No | `DBConfig.get(:api_key)` |
+| `get!(key)` | Strict retrieval | Yes, NotFoundError | `DBConfig.get!(:api_key)` |
+| `read(key)` | Alias for get() | No | `DBConfig.read(:api_key)` |
+| `exist?(key)` | Check if key exists | No | `DBConfig.exist?(:api_key)` |
+| `fetch(key, &block)` | Get or store block result | No | `DBConfig.fetch(:size) { 25 }` |
 
 **Fallback Pattern:**
 Use the `||` operator to provide fallback values when keys don't exist:
@@ -152,63 +151,18 @@ Use the `||` operator to provide fallback values when keys don't exist:
 page_size = DBConfig.get(:page_size) || 25
 ```
 
+### Writing Methods  
+| Method | Description | Example |
+|--------|-------------|---------|
+| `set(key, value)` | Store configuration | `DBConfig.set(:api_key, "secret")` |
+| `write(key, value)` | Alias for set() | `DBConfig.write(:api_key, "secret")` |
+| `update(key, **options)` | Update existing config | `DBConfig.update(:key, value: 42)` |
+| `delete(key)` | Remove configuration | `DBConfig.delete(:old_key)` |
 
-### `DBConfig.get!(key)`
-Strictly retrieves configuration value for the given key.
+### Method Details
 
-**Parameters:**
-- `key` (Symbol/String) - Configuration key to retrieve
-
-**Returns:** Stored value with original type preserved
-
-**Raises:** `DBConfig::NotFoundError` if key doesn't exist
-
-### `DBConfig.read(key)` (alias for `get`)
-Convenience alias for `DBConfig.get(key)`. Works exactly the same way.
-
-```ruby
-DBConfig.read(:api_key) # Same as DBConfig.get(:api_key)
-```
-
-### `DBConfig.set(key, value)`
-Stores configuration value with automatic type detection.
-
-**Parameters:**
-- `key` (Symbol/String) - Configuration key
-- `value` (Any) - Value to store (String, Integer, Float, Boolean, Array, Hash, nil)
-
-**Returns:** The stored value
-
-### `DBConfig.write(key, value)` (alias for `set`)
-Convenience alias for `DBConfig.set(key, value)`. Works exactly the same way.
-
-```ruby
-DBConfig.write(:api_key, "secret123")     # Same as DBConfig.set(:api_key, "secret123")
-```
-
-### `DBConfig.exist?(key)`
-Checks if a configuration key exists in the database.
-
-**Parameters:**
-- `key` (Symbol/String) - Configuration key to check
-
-**Returns:** `true` if the key exists, `false` otherwise
-
-**Raises:** Never raises exceptions
-
-```ruby
-DBConfig.exist?(:api_key)                 # => true or false
-DBConfig.exist?("api_key")                # Works with strings too
-```
-
-### `DBConfig.fetch(key, &block)`
+#### `DBConfig.fetch(key, &block)`
 Gets the value if it exists, or executes the block and stores the result if it doesn't.
-
-**Parameters:**
-- `key` (Symbol/String) - Configuration key to fetch
-- `&block` - Block to execute if key doesn't exist (optional)
-
-**Returns:** Existing value if found, block result (which gets stored), or `nil` if key doesn't exist and no block given
 
 ```ruby
 # If key exists, returns existing value (block not executed)
@@ -227,15 +181,7 @@ config = DBConfig.fetch(:api_config) { {endpoint: "api.com", timeout: 30} }
 DBConfig.fetch(:missing_key)  # => nil
 ```
 
-### `DBConfig.delete(key)`
-Removes configuration from database.
-
-**Parameters:**
-- `key` (Symbol/String) - Configuration key to remove
-
-**Returns:** `true` if deleted, `false` if key didn't exist
-
-### `DBConfig.update(key, **options)`
+#### `DBConfig.update(key, **options)`
 Updates configuration entry with intelligent type conversion and validation.
 
 **Parameters:**
