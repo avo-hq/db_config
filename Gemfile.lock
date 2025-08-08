@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    db_config (0.1.4)
+    db_config (0.1.5)
       activerecord (>= 6.0)
       activesupport (>= 6.0)
       railties (>= 6.0)
