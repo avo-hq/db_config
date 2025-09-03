@@ -72,13 +72,10 @@ class Avo::Resources::DbConfig < Avo::BaseResource
       help: -> {
         return if !record.persisted?
 
+        path, data = Avo::Resources::DbConfig::ForceChangeType.link_arguments(resource: resource)
+
         "Can't change the type of a configuration that has already been set.<br>
-        Use the 'Force Change Type' action to force the type change."
-
-        # path, data = Avo::Resources::DbConfig::ForceChangeType.link_arguments(resource: resource)
-
-        # "Can't change the type of a configuration that has already been set.<br>
-        # Click #{link_to("here", path, data: data).html_safe} to force the type change."
+        Click #{link_to("here", path, data: data).html_safe} to force the type change."
       }
 
     field :eager_load, as: :boolean
@@ -90,10 +87,6 @@ class Avo::Resources::DbConfig < Avo::BaseResource
 
   def self.singular_name
     "Configuration"
-  end
-
-  def actions
-    action ForceChangeType
   end
 
   class ForceChangeType < Avo::BaseAction
