@@ -11,14 +11,14 @@
 # It's strongly recommended that you check this file into your version control system.
 
 ActiveRecord::Schema[8.0].define(version: 1) do
-  create_table "db_config", force: :cascade do |t|
+  create_table "db_config_records", force: :cascade do |t|
     t.string "key", null: false
     t.string "value"
     t.string "value_type", default: "string", null: false
     t.boolean "eager_load", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["eager_load"], name: "index_db_config_on_eager_load"
-    t.index ["key"], name: "index_db_config_on_key", unique: true
+    t.index ["eager_load"], name: "index_db_config_records_on_eager_load"
+    t.index ["key"], name: "index_db_config_records_on_key", unique: true
   end
 end

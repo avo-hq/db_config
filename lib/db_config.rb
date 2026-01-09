@@ -1,6 +1,6 @@
 require "db_config/version"
 require "db_config/railtie"
-require "db_config/config_record"
+require "db_config/record"
 require "db_config/current"
 require "json"
 
@@ -28,7 +28,7 @@ module DBConfig
       value_type = determine_type(value)
       key = key.to_s
 
-      record = Current.cached_records[key] || DBConfig::ConfigRecord.find_or_initialize_by(key:)
+      record = Current.cached_records[key] || DBConfig::Record.find_or_initialize_by(key:)
 
       record.update!(
         value: value_str,
@@ -41,7 +41,7 @@ module DBConfig
 
     def delete(key)
       key_str = key.to_s
-      record = DBConfig::ConfigRecord.find_by(key: key_str)
+      record = DBConfig::Record.find_by(key: key_str)
 
       if record
         record.destroy!
@@ -77,8 +77,8 @@ module DBConfig
         target_type = kwargs[:type]
 
         # Validate target type
-        unless DBConfig::ConfigRecord::VALUE_TYPES.include?(target_type)
-          raise ArgumentError, "Invalid type: #{target_type}. Must be one of: #{DBConfig::ConfigRecord::VALUE_TYPES.join(", ")}"
+        unless DBConfig::Record::VALUE_TYPES.include?(target_type)
+          raise ArgumentError, "Invalid type: #{target_type}. Must be one of: #{DBConfig::Record::VALUE_TYPES.join(", ")}"
         end
 
         # Check if current value can be converted to target type
@@ -132,7 +132,7 @@ module DBConfig
     def get_record(key)
       key = key.to_s
 
-      Current.cached_records[key] || DBConfig::ConfigRecord.find_by(key:)
+      Current.cached_records[key] || DBConfig::Record.find_by(key:)
     end
 
     def determine_type(value)

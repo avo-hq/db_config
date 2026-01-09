@@ -3,7 +3,7 @@ require "test_helper"
 class DBConfigTest < ActiveSupport::TestCase
   def setup
     # Clean up any existing test data
-    DBConfig::ConfigRecord.delete_all if defined?(DBConfig::ConfigRecord)
+    DBConfig::Record.delete_all if defined?(DBConfig::Record)
   end
 
   test "it has a version number" do
@@ -135,7 +135,7 @@ class DBConfigTest < ActiveSupport::TestCase
     result = DBConfig.update(:eager_key, eager_load: true)
     assert_equal "value", result
 
-    record = DBConfig::ConfigRecord.find_by(key: "eager_key")
+    record = DBConfig::Record.find_by(key: "eager_key")
     assert_equal true, record.eager_load
   end
 
@@ -151,7 +151,7 @@ class DBConfigTest < ActiveSupport::TestCase
 
     DBConfig.set(:preserve_key, "new_value")
 
-    record = DBConfig::ConfigRecord.find_by(key: "preserve_key")
+    record = DBConfig::Record.find_by(key: "preserve_key")
     assert_equal true, record.eager_load
     assert_equal "new_value", DBConfig.get(:preserve_key)
   end
@@ -172,12 +172,12 @@ class DBConfigTest < ActiveSupport::TestCase
     DBConfig.set(:array_type, [1, 2, 3])
     DBConfig.set(:hash_type, {"key" => "value"})
 
-    assert_equal "String", DBConfig::ConfigRecord.find_by(key: "string_type").value_type
-    assert_equal "Integer", DBConfig::ConfigRecord.find_by(key: "int_type").value_type
-    assert_equal "Float", DBConfig::ConfigRecord.find_by(key: "float_type").value_type
-    assert_equal "Boolean", DBConfig::ConfigRecord.find_by(key: "bool_type").value_type
-    assert_equal "Array", DBConfig::ConfigRecord.find_by(key: "array_type").value_type
-    assert_equal "Hash", DBConfig::ConfigRecord.find_by(key: "hash_type").value_type
+    assert_equal "String", DBConfig::Record.find_by(key: "string_type").value_type
+    assert_equal "Integer", DBConfig::Record.find_by(key: "int_type").value_type
+    assert_equal "Float", DBConfig::Record.find_by(key: "float_type").value_type
+    assert_equal "Boolean", DBConfig::Record.find_by(key: "bool_type").value_type
+    assert_equal "Array", DBConfig::Record.find_by(key: "array_type").value_type
+    assert_equal "Hash", DBConfig::Record.find_by(key: "hash_type").value_type
   end
 
   test "can set and get nil values" do
@@ -185,7 +185,7 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_nil DBConfig.get(:nil_key)
 
     # Verify it's stored with correct type
-    record = DBConfig::ConfigRecord.find_by(key: "nil_key")
+    record = DBConfig::Record.find_by(key: "nil_key")
     assert_equal "NilClass", record.value_type
     assert_nil record.value  # nil stored as NULL in database
   end
@@ -218,7 +218,7 @@ class DBConfigTest < ActiveSupport::TestCase
 
   test "stores correct value_type for nil" do
     DBConfig.set(:nil_type_test, nil)
-    assert_equal "NilClass", DBConfig::ConfigRecord.find_by(key: "nil_type_test").value_type
+    assert_equal "NilClass", DBConfig::Record.find_by(key: "nil_type_test").value_type
   end
 
   test "get on non-existent key doesn't create record for eager_load testing" do
@@ -232,7 +232,7 @@ class DBConfigTest < ActiveSupport::TestCase
     end
 
     # Still no record should exist
-    record = DBConfig::ConfigRecord.find_by(key: "nil_eager_test")
+    record = DBConfig::Record.find_by(key: "nil_eager_test")
     assert_nil record
   end
 
@@ -242,14 +242,14 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal "value to delete", DBConfig.get(:delete_test)
 
     # Verify it exists in database
-    assert_not_nil DBConfig::ConfigRecord.find_by(key: "delete_test")
+    assert_not_nil DBConfig::Record.find_by(key: "delete_test")
 
     # Delete it
     result = DBConfig.delete(:delete_test)
     assert_equal true, result
 
     # Verify it no longer exists
-    assert_nil DBConfig::ConfigRecord.find_by(key: "delete_test")
+    assert_nil DBConfig::Record.find_by(key: "delete_test")
 
     # Verify get returns nil
     assert_nil DBConfig.get(:delete_test)
@@ -311,14 +311,14 @@ class DBConfigTest < ActiveSupport::TestCase
     DBConfig.set(:config2, "value2")
     DBConfig.set(:config3, "value3")
 
-    initial_count = DBConfig::ConfigRecord.count
+    initial_count = DBConfig::Record.count
     assert_equal 3, initial_count
 
     # Delete one
     DBConfig.delete(:config2)
 
     # Count should decrease
-    assert_equal 2, DBConfig::ConfigRecord.count
+    assert_equal 2, DBConfig::Record.count
 
     # Remaining configs should still exist
     assert_equal "value1", DBConfig.get(:config1)
@@ -501,7 +501,7 @@ class DBConfigTest < ActiveSupport::TestCase
     assert DBConfig::Current.cached_records.key?("sync_test")
 
     # Modify the record directly in database (simulating external change)
-    record = DBConfig::ConfigRecord.find_by(key: "sync_test")
+    record = DBConfig::Record.find_by(key: "sync_test")
     record.update!(value: "modified_externally")
 
     # Cache should automatically have new value due to callbacks
@@ -519,7 +519,7 @@ class DBConfigTest < ActiveSupport::TestCase
     assert DBConfig::Current.cached_records.key?("delete_sync_test")
 
     # Delete record directly from database
-    DBConfig::ConfigRecord.find_by(key: "delete_sync_test").destroy!
+    DBConfig::Record.find_by(key: "delete_sync_test").destroy!
 
     # Cache should automatically have record removed due to callbacks
     assert_not DBConfig::Current.cached_records.key?("delete_sync_test")
@@ -771,7 +771,7 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal "updated", DBConfig.get(:update_test)
 
     # Type should remain the same
-    record = DBConfig::ConfigRecord.find_by(key: "update_test")
+    record = DBConfig::Record.find_by(key: "update_test")
     assert_equal "String", record.value_type
   end
 
@@ -783,7 +783,7 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal 123, result
     assert_equal 123, DBConfig.get(:string_to_int)
 
-    record = DBConfig::ConfigRecord.find_by(key: "string_to_int")
+    record = DBConfig::Record.find_by(key: "string_to_int")
     assert_equal "Integer", record.value_type
   end
 
@@ -796,7 +796,7 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal 42, DBConfig.get(:type_change_test)
 
     # Type should have changed
-    record = DBConfig::ConfigRecord.find_by(key: "type_change_test")
+    record = DBConfig::Record.find_by(key: "type_change_test")
     assert_equal "Integer", record.value_type
   end
 
@@ -810,7 +810,7 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal 42, DBConfig.get(:incompatible_test)
 
     # Verify the type changed from String to Integer
-    record = DBConfig::ConfigRecord.find_by(key: "incompatible_test")
+    record = DBConfig::Record.find_by(key: "incompatible_test")
     assert_equal "Integer", record.value_type
   end
 
@@ -821,7 +821,7 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal 123, result
     assert_equal 123, DBConfig.get(:explicit_type_change_test)
 
-    record = DBConfig::ConfigRecord.find_by(key: "explicit_type_change_test")
+    record = DBConfig::Record.find_by(key: "explicit_type_change_test")
     assert_equal "Integer", record.value_type
   end
 
@@ -834,7 +834,7 @@ class DBConfigTest < ActiveSupport::TestCase
 
     # Original value should remain unchanged
     assert_equal "hello", DBConfig.get(:type_incompatible_test)
-    record = DBConfig::ConfigRecord.find_by(key: "type_incompatible_test")
+    record = DBConfig::Record.find_by(key: "type_incompatible_test")
     assert_equal "String", record.value_type
   end
 
@@ -850,7 +850,7 @@ class DBConfigTest < ActiveSupport::TestCase
     DBConfig.set(:eager_update_test, "value")
 
     # Initially eager_load should be false
-    record = DBConfig::ConfigRecord.find_by(key: "eager_update_test")
+    record = DBConfig::Record.find_by(key: "eager_update_test")
     assert_equal false, record.eager_load
 
     # Update eager_load flag
@@ -870,7 +870,7 @@ class DBConfigTest < ActiveSupport::TestCase
     assert_equal "123", result
     assert_equal "123", DBConfig.get(:multi_update_test)
 
-    record = DBConfig::ConfigRecord.find_by(key: "multi_update_test")
+    record = DBConfig::Record.find_by(key: "multi_update_test")
     assert_equal "String", record.value_type
     assert_equal true, record.eager_load
   end
@@ -1035,7 +1035,7 @@ class DBConfigTest < ActiveSupport::TestCase
 
   test "update method with no changes returns current value" do
     DBConfig.set(:no_change_test, "value")
-    original_record = DBConfig::ConfigRecord.find_by(key: "no_change_test")
+    original_record = DBConfig::Record.find_by(key: "no_change_test")
     original_updated_at = original_record.updated_at
 
     result = DBConfig.update(:no_change_test)

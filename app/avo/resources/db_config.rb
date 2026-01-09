@@ -1,5 +1,5 @@
 class Avo::Resources::DbConfig < Avo::BaseResource
-  self.model_class = ::DBConfig::ConfigRecord
+  self.model_class = ::DBConfig::Record
   self.title = :key
   self.search = {
     query: -> {
@@ -68,7 +68,7 @@ class Avo::Resources::DbConfig < Avo::BaseResource
     field :value_type,
       as: :select,
       name: "Type",
-      options: DBConfig::ConfigRecord::VALUE_TYPES, disabled: -> { record.persisted? },
+      options: DBConfig::Record::VALUE_TYPES, disabled: -> { record.persisted? },
       help: -> {
         return if !record.persisted?
 
@@ -100,7 +100,7 @@ class Avo::Resources::DbConfig < Avo::BaseResource
     }
 
     def fields
-      field :value_type, as: :select, options: DBConfig::ConfigRecord::VALUE_TYPES
+      field :value_type, as: :select, options: DBConfig::Record::VALUE_TYPES
     end
 
     DEFAULT_VALUE_TYPES = {
