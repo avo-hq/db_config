@@ -1,6 +1,6 @@
 module DBConfig
-  class ConfigRecord < ActiveRecord::Base
-    self.table_name = "db_config"
+  class Record < ActiveRecord::Base
+    self.table_name_prefix = "db_config_"
 
     VALUE_TYPES = %w[String Integer Float Boolean Array Hash NilClass]
 
@@ -11,13 +11,6 @@ module DBConfig
     # Sync cache automatically on any changes
     after_save :sync_cache
     after_destroy :sync_cache
-
-    # Add index for the key column if not already present
-    def self.ensure_indexes!
-      unless connection.index_exists?(:db_config, :key)
-        connection.add_index :db_config, :key, unique: true
-      end
-    end
 
     def self.ransackable_attributes(auth_object = nil)
       authorizable_ransackable_attributes
