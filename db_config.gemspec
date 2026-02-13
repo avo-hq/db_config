@@ -6,8 +6,16 @@ Gem::Specification.new do |spec|
   spec.authors = ["Paul Bob"]
   spec.email = ["paul.ionut.bob@gmail.com"]
   spec.homepage = "https://github.com/avo-hq/db_config"
-  spec.summary = "Database-backed configuration store for Rails applications"
-  spec.description = "A Rails gem that provides a simple, database-backed configuration store with support for different data types, eager loading, and a clean API for managing application settings."
+  spec.summary = "Database-backed configuration store for Rails with automatic type conversion, eager loading, and Avo integration"
+  spec.description = <<~DESC
+    DBConfig provides a powerful, database-backed configuration store for Rails applications.
+    Store and retrieve configuration values dynamically with automatic type detection and conversion
+    (strings, integers, floats, booleans, arrays, hashes, and nil). Features eager loading for
+    high-performance access to frequently used configs, a simple API (get/set/update/delete),
+    and seamless integration with Avo admin panels.
+
+    See https://github.com/avo-hq/db_config for full documentation and usage examples.
+  DESC
   spec.license = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the "allowed_push_host"
