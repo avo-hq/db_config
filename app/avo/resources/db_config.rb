@@ -5,7 +5,7 @@ class Avo::Resources::DbConfig < Avo::BaseResource
     query: -> {
       query.ransack(
         key_cont: q,
-        id_cont: q,
+        id_eql: q,
         value_cont: q,
         value_type_cont: q,
         eager_load_cont: q,
