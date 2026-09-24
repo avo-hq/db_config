@@ -1,10 +1,13 @@
 require "db_config/version"
 require "db_config/railtie"
-require "db_config/record"
 require "db_config/current"
 require "json"
 
 module DBConfig
+  # Requiring the gem must not load Active Record: Rails 8.2 flags a framework loaded before the app
+  # initializes (rails/rails#58334), and `Record < ActiveRecord::Base` would do exactly that.
+  autoload :Record, "db_config/record"
+
   class NotFoundError < StandardError; end
 
   class << self
