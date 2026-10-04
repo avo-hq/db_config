@@ -2,6 +2,8 @@
 
 Database-backed configuration store for Rails with automatic type conversion, default values, and high-performance eager loading.
 
+![](./logo.png)
+
 ## Features
 
 - **Type-safe storage**: Auto-detects and converts strings, integers, floats, booleans, arrays, hashes, and nil
